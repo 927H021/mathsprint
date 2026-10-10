@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MathSprint</title>
+<meta name="theme-color" content="#F7F7F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14161A" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MathSprint">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<style>
+/* Polices embarquées (fonctionnent hors ligne) */
+@font-face{font-family:'Inter';font-weight:400;font-style:normal;font-display:swap;src:url('Inter-Regular.woff') format('woff');}
+@font-face{font-family:'Inter';font-weight:500;font-style:normal;font-display:swap;src:url('Inter-Medium.woff') format('woff');}
+@font-face{font-family:'Inter';font-weight:600;font-style:normal;font-display:swap;src:url('Inter-SemiBold.woff') format('woff');}
+@font-face{font-family:'Inter';font-weight:700;font-style:normal;font-display:swap;src:url('Inter-Bold.woff') format('woff');}
+@font-face{font-family:'JetBrains Mono';font-weight:400 600;font-style:normal;font-display:swap;src:url('JetBrainsMono-Regular.woff') format('woff');}
+@font-face{font-family:'JetBrains Mono';font-weight:700 900;font-style:normal;font-display:swap;src:url('JetBrainsMono-Bold.woff') format('woff');}
+/* Confort « appli » : pas de zoom au double-tap, pas de rebond, pas de sélection de texte */
+html{touch-action:manipulation; overscroll-behavior:none;}
+body{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none; overscroll-behavior:none;}
+:root{
+  --bg:#F7F7F4; --ink:#15181C; --muted:#8A8F98; --line:#E4E3DD;
+  --accent:#2F6FED; --accent-soft:#E9F0FF; --good:#1E8E5A; --bad:#E5484D; --warn:#C77700; --fast:#00C46A;
+  --card:#FFFFFF;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14161A; --ink:#F2F3F5; --muted:#9096A0; --line:#2A2D33;
+    --accent:#5B8DFF; --accent-soft:#1E2A45; --good:#3ECB86; --bad:#FF6B6E; --warn:#F0A63A; --fast:#2EF59A; --card:#1B1E24;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14161A; --ink:#F2F3F5; --muted:#9096A0; --line:#2A2D33;
+  --accent:#5B8DFF; --accent-soft:#1E2A45; --good:#3ECB86; --bad:#FF6B6E; --warn:#F0A63A; --fast:#2EF59A; --card:#1B1E24;
+}
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{
+  font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--ink);
+  height:100%; display:flex; flex-direction:column; overflow:hidden; -webkit-tap-highlight-color:transparent;
+}
+.num{font-family:'JetBrains Mono',monospace;}
+.screen{flex:1; display:none; flex-direction:column; padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));}
+.screen.active{display:flex;}
+/* HOME */
+#home{justify-content:space-between;}
+.home-top{display:flex; align-items:center; justify-content:space-between; padding-top:6px;}
+.brand{font-size:15px; font-weight:700; letter-spacing:-.02em;}
+.brand span{color:var(--accent);}
+.best-pill{font-size:12px; color:var(--muted); background:var(--card); border:1px solid var(--line); padding:6px 10px; border-radius:20px;}
+.hero{margin-top:18px;}
+.hero-num{font-size:64px; font-weight:800; line-height:1; letter-spacing:-.03em;}
+.hero-label{color:var(--muted); font-size:14px; margin-top:6px;}
+.duration-row{display:flex; gap:8px; margin-top:22px;}
+.chip{flex:1; text-align:center; padding:10px 0; border-radius:12px; border:1px solid var(--line); font-size:14px; font-weight:600; color:var(--muted); background:var(--card);}
+.chip.sel{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
+.level-row{display:flex; gap:8px; margin-top:8px;}
+.section-label{font-size:12px; color:var(--muted); font-weight:600; margin-top:20px; margin-bottom:8px;}
+.tables-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:6px;}
+.tchip{text-align:center; padding:10px 0; border-radius:10px; border:1px solid var(--line); font-size:14px; font-weight:700; color:var(--muted); background:var(--card); font-family:'JetBrains Mono',monospace;}
+.tchip.sel{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
+.tchip.all{grid-column:span 6; font-family:'Inter',sans-serif; font-size:13px;}
+.actions{margin-top:auto; display:flex; flex-direction:column; gap:10px;}
+button{font-family:inherit; border:none; cursor:pointer;}
+.btn-primary{background:var(--ink); color:var(--bg); font-size:17px; font-weight:700; padding:18px; border-radius:16px;}
+.btn-pill{display:flex; align-items:center; justify-content:center; gap:12px; background:#375D8D; color:#fff; font-size:20px; font-weight:700; letter-spacing:-.01em; padding:18px 24px; border-radius:999px; box-shadow:0 10px 20px -12px rgba(55,93,141,.85); touch-action:manipulation; transition:transform .08s, filter .08s;}
+.btn-pill:active{transform:scale(.97); filter:brightness(1.1);}
+.btn-pill svg{flex:none; display:block;}
+.btn-secondary{background:var(--card); color:var(--ink); border:1px solid var(--line); font-size:15px; font-weight:600; padding:14px; border-radius:16px; display:flex; justify-content:space-between; align-items:center;}
+.btn-secondary .r{color:var(--muted); font-weight:500; font-size:13px;}
+/* COUNTDOWN */
+#countdown{align-items:center; justify-content:center;}
+.cd-num{font-size:120px; font-weight:800; font-family:'JetBrains Mono',monospace; color:var(--accent);}
+/* DRILL */
+#drill{padding-top:calc(14px + env(safe-area-inset-top,0px)); min-height:0;}
+.drill-exit{font-size:13px; color:var(--muted); font-weight:600; padding:6px 0 10px; touch-action:manipulation;}
+.drill-top{display:flex; justify-content:space-between; align-items:center;}
+.timer{font-size:15px; font-weight:700;} .timer.warn{color:var(--bad);}
+.combo{font-size:13px; font-weight:600; color:var(--accent); opacity:0; transition:opacity .15s;}
+.combo.show{opacity:1;}
+.qwrap{flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:8px 0; overflow:hidden;}
+.game-card{
+  position:relative; height:100%; max-height:230px; min-height:130px; aspect-ratio:0.68; width:auto; max-width:78vw;
+  background:var(--card); border:1px solid var(--line); border-radius:22px;
+  box-shadow:0 16px 34px -16px rgba(0,0,0,.28), 0 3px 8px rgba(0,0,0,.08);
+  display:flex; align-items:center; justify-content:center;
+}
+.corner{position:absolute; display:flex; flex-direction:column; align-items:center; line-height:1.1; font-family:'JetBrains Mono',monospace; color:var(--accent);}
+.corner .cval{font-size:14px; font-weight:800;}
+.corner .csuit{font-size:11px; margin-top:2px;}
+.corner.tl{top:14px; left:16px;}
+.corner.br{bottom:14px; right:16px; transform:rotate(180deg);}
+.card-center{display:flex; flex-direction:column; align-items:center; gap:10px;}
+.game-card.pop-good{animation:popGood .32s ease;}
+.game-card.pop-bad{animation:popBad .32s ease;}
+@keyframes popGood{
+  0%{transform:scale(1); border-color:var(--line);}
+  35%{transform:scale(1.06); border-color:var(--good); box-shadow:0 16px 34px -16px rgba(30,142,90,.4), 0 3px 8px rgba(0,0,0,.08);}
+  100%{transform:scale(1); border-color:var(--line);}
+}
+@keyframes popBad{
+  0%{transform:translateX(0); border-color:var(--line);}
+  20%{transform:translateX(-8px); border-color:var(--bad);}
+  40%{transform:translateX(7px);}
+  60%{transform:translateX(-5px);}
+  80%{transform:translateX(3px);}
+  100%{transform:translateX(0); border-color:var(--line);}
+}
+.question{font-size:34px; font-weight:700; letter-spacing:-.02em;}
+.answer{font-size:26px; font-weight:800; min-height:36px; color:var(--accent); border-bottom:3px solid var(--line); padding:0 8px 3px; min-width:80px; text-align:center;}
+.answer.flash-good{color:var(--good); border-color:var(--good);}
+.answer.flash-bad{color:var(--bad); border-color:var(--bad); animation:shake .25s;}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.keypad{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:4px;}
+.key{padding:16px 0; font-size:22px; font-weight:600; background:var(--card); border:1px solid var(--line); border-radius:14px; color:var(--ink); touch-action:manipulation; user-select:none;}
+.key:active, .key.pressed{background:var(--accent-soft); border-color:var(--accent); transform:scale(0.96);}
+.key.wide{grid-column:span 1;}
+/* RESULTS */
+.res-score{font-size:56px; font-weight:800; text-align:center; margin-top:10px;}
+.res-label{text-align:center; color:var(--muted); font-size:13px; margin-top:2px;}
+.big-cc-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:22px;}
+.big-cc{border-radius:16px; padding:16px 8px; text-align:center; border:1px solid var(--line);}
+.big-cc.good{background:color-mix(in srgb, var(--good) 12%, var(--card));}
+.big-cc.bad{background:color-mix(in srgb, var(--bad) 12%, var(--card));}
+.big-cc-v{font-size:38px; font-weight:800;}
+.big-cc.good .big-cc-v{color:var(--good);} .big-cc.bad .big-cc-v{color:var(--bad);}
+.big-cc-l{font-size:12px; color:var(--muted); margin-top:2px; font-weight:600;}
+.err-row{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;}
+.err-q{font-family:'JetBrains Mono',monospace; font-weight:700; font-size:16px;}
+.err-detail{font-size:12px; color:var(--muted); text-align:right;}
+.err-detail b{color:var(--bad);}
+.err-empty{text-align:center; color:var(--muted); font-size:14px; margin-top:40px;}
+/* Tuiles cliquables + tableaux de détail */
+.tap{cursor:pointer; position:relative; touch-action:manipulation; user-select:none; -webkit-user-select:none; transition:transform .08s;}
+.tap:active{transform:scale(0.97);}
+.tap::after{content:'›'; position:absolute; top:6px; right:10px; font-size:16px; color:var(--muted); font-weight:700;}
+#results{overflow-y:auto; -webkit-overflow-scrolling:touch;}
+.weather{margin-top:calc(8px + env(safe-area-inset-top,0px)); padding:16px 16px 14px; border-radius:22px; color:#fff; box-shadow:0 10px 24px -14px rgba(20,40,80,.55);}
+.w-head{text-align:center;}
+.w-title{font-size:14px; font-weight:600; opacity:.85;}
+.w-score{font-size:60px; font-weight:800; line-height:1.1; margin-top:2px;}
+.w-record{display:inline-block; margin-top:6px; padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600; background:rgba(255,255,255,.16); color:rgba(255,255,255,.9);}
+.w-record.is-best{background:rgba(255,255,255,.95); color:#14683F;}
+.w-row{display:flex; align-items:center; gap:14px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.22);}
+.weather.w-sunny{background:linear-gradient(135deg,#2F6FDC,#5A9FF0);}
+.weather.w-partly{background:linear-gradient(135deg,#3F69A3,#6F93BF);}
+.weather.w-cloudy{background:linear-gradient(135deg,#5A6779,#7D8A9B);}
+.weather.w-rain{background:linear-gradient(135deg,#34445C,#5B6E88);}
+.w-ico{flex:none;} .w-ico svg{width:58px; height:58px; display:block;}
+.w-main{font-size:19px; font-weight:700; letter-spacing:-.01em;}
+.w-sub{font-size:12px; opacity:.9; margin-top:3px;}
+#detailScreen{min-height:0;}
+.detail-scroll{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:12px;}
+.dtable{width:100%; border-collapse:collapse; font-size:14px; margin-top:6px;}
+.dtable th{position:sticky; top:0; background:var(--bg); text-align:left; font-size:11px; color:var(--muted); font-weight:600; padding:8px 6px; border-bottom:1px solid var(--line);}
+.dtable td{padding:10px 6px; border-bottom:1px solid var(--line);}
+.dtable .n{color:var(--muted); width:34px;}
+.dtable .m{font-family:'JetBrains Mono',monospace; font-weight:700;}
+.dtable .r{text-align:right;} .dtable th.r{text-align:right;}
+.dtable .ok{color:var(--good); font-weight:700;} .dtable .ko{color:var(--bad); font-weight:700;}
+.dtable tr.p-top td{background:color-mix(in srgb, var(--good) 10%, transparent);}
+.dtable tr.p-fast td{background:color-mix(in srgb, var(--fast) 20%, transparent);}
+.dtable tr.p-mid td{background:color-mix(in srgb, var(--warn) 13%, transparent);}
+.dtable tr.p-low td{background:color-mix(in srgb, var(--bad) 12%, transparent);}
+.pill{display:inline-block; min-width:74px; white-space:nowrap; text-align:center; padding:3px 8px; border-radius:20px; font-family:'JetBrains Mono',monospace; font-weight:800; font-size:13px; color:#fff;}
+.pill.p-fast{background:var(--fast); color:#06351F;} .pill.p-top{background:var(--good);} .pill.p-mid{background:var(--warn);} .pill.p-low{background:var(--bad);}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .pill{color:#14161A;} }
+:root[data-theme="dark"] .pill{color:#14161A;}
+.pill.p-fast{color:#06351F !important;}
+.note{font-size:11px; color:var(--muted); line-height:1.4; margin:0 0 8px;} .note b{color:var(--ink); font-weight:600;}
+.legend{display:flex; flex-wrap:wrap; gap:6px 12px; font-size:11px; color:var(--muted); margin:2px 0 8px;}
+.legend span::before{content:''; display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:5px; vertical-align:-1px;}
+.legend .l-fast::before{background:var(--fast);} .legend .l-top::before{background:var(--good);} .legend .l-mid::before{background:var(--warn);} .legend .l-low::before{background:var(--bad);}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:26px;}
+.stat-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 8px; text-align:center;}
+.stat-v{font-size:20px; font-weight:700;} .stat-l{font-size:11px; color:var(--muted); margin-top:2px;}
+/* STATS */
+#statsScreen h2{font-size:20px; margin:0 0 4px;}
+.back{font-size:13px; color:var(--muted); margin-bottom:14px; font-weight:600;}
+.heat{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:6px;}
+.hcell{aspect-ratio:1; border-radius:4px; background:var(--line);}
+.row-line{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); font-size:14px;}
+.row-line .v{font-weight:700;}
+</style>
+</head>
+<body>
+
+<div id="home" class="screen active">
+  <div>
+    <div class="home-top">
+      <div class="brand">Math<span>Sprint</span></div>
+      <div class="best-pill" id="bestPill">Meilleur score : —</div>
+    </div>
+    <div class="hero">
+      <div class="hero-num num" id="streakNum">0</div>
+      <div class="hero-label">jours d'entraînement d'affilée</div>
+    </div>
+    <div class="duration-row" id="durRow">
+      <div class="chip" data-v="30">30s</div>
+      <div class="chip sel" data-v="60">60s</div>
+      <div class="chip" data-v="120">120s</div>
+    </div>
+    <div class="level-row" id="lvlRow">
+      <div class="chip sel" data-v="1">Débutant</div>
+      <div class="chip" data-v="2">Interméd.</div>
+      <div class="chip" data-v="3">Avancé</div>
+      <div class="chip" data-v="4">Expert</div>
+    </div>
+    <div class="section-label" id="tablesLabel">Tables à réviser</div>
+    <div class="tables-grid" id="tablesGrid">
+      <div class="tchip all sel" data-all="1">Toutes les tables</div>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn-primary" id="startBtn">Commencer</button>
+    <button class="btn-secondary" id="challengeBtn">Défi du jour <span class="r">tables 6-9 + points faibles</span></button>
+    <button class="btn-secondary" id="statsBtn">Statistiques <span class="r" id="sessCountR">0 séances</span></button>
+  </div>
+</div>
+
+<div id="countdown" class="screen">
+  <div class="cd-num num" id="cdNum">3</div>
+</div>
+
+<div id="drill" class="screen">
+  <div class="drill-exit" id="exitBtn">‹ Quitter</div>
+  <div class="drill-top">
+    <div class="timer num" id="timerEl">30</div>
+    <div class="combo" id="comboEl">🔥 0</div>
+    <div class="timer num" id="scoreEl">0</div>
+  </div>
+  <div class="qwrap">
+    <div class="game-card" id="gameCard">
+      <div class="corner tl"><span class="cval" id="cornerTxt1">7×8</span><span class="csuit">✕</span></div>
+      <div class="card-center">
+        <div class="question num" id="questionEl">7 × 8</div>
+        <div class="answer num" id="answerEl">&nbsp;</div>
+      </div>
+      <div class="corner br"><span class="cval" id="cornerTxt2">7×8</span><span class="csuit">✕</span></div>
+    </div>
+  </div>
+  <div class="keypad" id="keypad"></div>
+</div>
+
+<div id="results" class="screen">
+  <div class="weather w-sunny" id="weatherCard">
+    <div class="w-head">
+      <div class="w-title">Séance terminée</div>
+      <div class="w-score num" id="finalScore">0</div>
+      <div class="w-record" id="finalBestNote">nouveau record</div>
+    </div>
+    <div class="w-row">
+      <div class="w-ico" id="wIco"></div>
+      <div class="w-txt"><div class="w-main" id="wMain">Beau temps</div><div class="w-sub" id="wSub"></div></div>
+    </div>
+  </div>
+  <div class="big-cc-grid">
+    <div class="big-cc good tap" role="button" tabindex="0" data-detail="correct"><div class="big-cc-v num" id="bigCorrect">0</div><div class="big-cc-l">bonnes réponses</div></div>
+    <div class="big-cc bad tap" role="button" tabindex="0" data-detail="errors"><div class="big-cc-v num" id="bigWrong">0</div><div class="big-cc-l">erreurs</div></div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card tap" role="button" tabindex="0" data-detail="rpm"><div class="stat-v" id="rpm">0</div><div class="stat-l">réponses/min</div></div>
+    <div class="stat-card tap" role="button" tabindex="0" data-detail="accuracy"><div class="stat-v" id="acc">0%</div><div class="stat-l">précision</div></div>
+    <div class="stat-card tap" role="button" tabindex="0" data-detail="time"><div class="stat-v" id="avgT">0s</div><div class="stat-l">temps moyen</div></div>
+  </div>
+  <div class="actions">
+    <button class="btn-pill" id="retryBtn"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg><span>Rejouer</span></button>
+    <button class="btn-secondary" id="viewErrorsBtn">Revoir mes erreurs <span class="r" id="errCountR">0</span></button>
+    <button class="btn-secondary" id="homeBtn">Retour à l'accueil <span class="r">›</span></button>
+  </div>
+</div>
+
+<div id="detailScreen" class="screen">
+  <div style="padding-top:calc(10px + env(safe-area-inset-top,0px)); display:flex; flex-direction:column; flex:1; min-height:0;">
+    <div class="back" id="detailBack">‹ Retour</div>
+    <h2 id="detailTitle" style="font-size:20px; margin:0 0 4px;">Détail</h2>
+    <div class="res-label" style="text-align:left;margin-bottom:10px;" id="detailSub"></div>
+    <div class="detail-scroll" id="detailBody"></div>
+  </div>
+</div>
+
+<div id="statsScreen" class="screen">
+  <div style="padding-top:calc(10px + env(safe-area-inset-top,0px));">
+    <div class="back" id="statsBack">‹ Retour</div>
+    <h2>Statistiques</h2>
+    <div class="res-label" style="text-align:left;margin-bottom:14px;">7 derniers jours</div>
+    <div class="heat" id="heat"></div>
+    <div style="margin-top:22px;">
+      <div class="row-line"><span>Séances totales</span><span class="v" id="stTotal">0</span></div>
+      <div class="row-line"><span>Temps d'entraînement</span><span class="v" id="stTime">0 min</span></div>
+      <div class="row-line"><span>Précision moyenne</span><span class="v" id="stAcc">—</span></div>
+      <div class="row-line"><span>Meilleur score</span><span class="v" id="stBest">—</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const store=()=>{ try{ return JSON.parse(localStorage.getItem('ms_data')||'{}'); }catch(e){ return {}; } };
+  const save=d=>{ try{ localStorage.setItem('ms_data', JSON.stringify(d)); }catch(e){} };
+  let data=Object.assign({sessions:[], best:0, streak:0, lastDay:null, errorStats:{}}, store());
+  if(!data.errorStats) data.errorStats={};
+
+  let duration=60, level=1;
+  document.querySelectorAll('#durRow .chip').forEach(c=>c.onclick=()=>{
+    document.querySelectorAll('#durRow .chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); duration=+c.dataset.v;
+  });
+  document.querySelectorAll('#lvlRow .chip').forEach(c=>c.onclick=()=>{
+    document.querySelectorAll('#lvlRow .chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); level=+c.dataset.v;
+  });
+
+  // ---- table selection (1 to 10, or "toutes") ----
+  const tablesGrid=$('tablesGrid');
+  let selectedTables=[2,3,4,5,6,7,8,9,10,11,12].slice(0,10); // default: toutes (1-10 affichées, 1 inclus ci-dessous)
+  selectedTables=[1,2,3,4,5,6,7,8,9,10];
+  let allMode=true;
+  for(let n=1;n<=10;n++){
+    const c=document.createElement('div'); c.className='tchip'; c.textContent=n; c.dataset.n=n;
+    c.onclick=()=>{
+      allMode=false; $('tablesGrid').querySelector('.all').classList.remove('sel');
+      c.classList.toggle('sel');
+      selectedTables = [...tablesGrid.querySelectorAll('.tchip:not(.all).sel')].map(x=>+x.dataset.n);
+      if(selectedTables.length===0){ allMode=true; $('tablesGrid').querySelector('.all').classList.add('sel'); selectedTables=[1,2,3,4,5,6,7,8,9,10]; }
+    };
+    tablesGrid.appendChild(c);
+  }
+  tablesGrid.querySelector('.all').onclick=()=>{
+    allMode=true; selectedTables=[1,2,3,4,5,6,7,8,9,10];
+    tablesGrid.querySelectorAll('.tchip').forEach(x=>x.classList.remove('sel'));
+    tablesGrid.querySelector('.all').classList.add('sel');
+  };
+
+  // ---- sons doux, chauds et ronds (Web Audio, synthétisés) ----
+  let actx=null;
+  function ctx(){ if(!actx) actx=new (window.AudioContext||window.webkitAudioContext)(); return actx; }
+  function tone(freq, t0, dur, vol, type){
+    const c=ctx(); const o=c.createOscillator(); const g=c.createGain(); const lp=c.createBiquadFilter();
+    lp.type='lowpass'; lp.frequency.value=1400;
+    o.type=type||'sine'; o.frequency.value=freq;
+    o.connect(lp); lp.connect(g); g.connect(c.destination);
+    const start=c.currentTime+t0;
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(vol, start+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, start+dur);
+    o.start(start); o.stop(start+dur+0.02);
+  }
+  let noiseBuf=null;
+  function getNoise(c){
+    if(noiseBuf) return noiseBuf;
+    const len=Math.floor(c.sampleRate*0.06);
+    const buf=c.createBuffer(1,len,c.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+    noiseBuf=buf; return buf;
+  }
+  function tap(t0, vol, cutoff){
+    const c=ctx();
+    const src=c.createBufferSource(); src.buffer=getNoise(c);
+    const lp=c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=cutoff||1000; lp.Q.value=0.5;
+    const g=c.createGain();
+    src.connect(lp); lp.connect(g); g.connect(c.destination);
+    const start=c.currentTime+t0;
+    g.gain.setValueAtTime(0,start);
+    g.gain.linearRampToValueAtTime(vol,start+0.006);
+    g.gain.exponentialRampToValueAtTime(0.001,start+0.055);
+    src.start(start); src.stop(start+0.07);
+  }
+  const sound={
+    tick:()=>tone(440,0,0.16,0.16,'sine'),
+    go:()=>{tone(523,0,0.22,0.18,'sine'); tone(659,0.05,0.28,0.14,'sine');},
+    correct:()=>{ tap(0,0.11,1300); tap(0.055,0.10,1500); },
+    wrong:()=>tone(220,0,0.22,0.14,'triangle'),
+    end:()=>{tone(523,0,0.16,0.15,'sine'); tone(659,0.1,0.16,0.13,'sine'); tone(784,0.2,0.3,0.13,'sine');},
+    key:()=>{ tap(0,0.10,950); tone(150+Math.random()*30,0,0.06,0.05,'sine'); },
+    del:()=>{ tap(0,0.09,650); tone(110,0,0.07,0.05,'sine'); }
+  };
+
+  function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+
+  function refreshHome(){
+    $('bestPill').textContent = 'Meilleur score : ' + (data.best||'—');
+    $('sessCountR').textContent = data.sessions.length + ' séances';
+    $('streakNum').textContent = data.streak||0;
+  }
+  refreshHome();
+
+  // Débutant/Intermédiaire : tables classiques (b de 1 à 10, ×12 en intermédiaire).
+  // Avancé/Expert : mêmes tables, mais opérande b choisi pour obtenir un résultat à 3 chiffres.
+  let diff=30; // 0-100, biaise la difficulté à l'intérieur du niveau choisi
+  let recentKeys=[]; // historique des dernières questions posées, pour éviter les répétitions
+  function pushRecent(key){ recentKeys.push(key); if(recentKeys.length>8) recentKeys.shift(); }
+
+  const WEAK=[1,10]; // tables à exclure autant que possible
+  function pick(arr){
+    const filtered=arr.filter(n=>!WEAK.includes(n));
+    const use=filtered.length?filtered:arr;
+    return use[Math.floor(Math.random()*use.length)];
+  }
+  function pickRange(lo,hi,avoidArr){
+    const full=[]; for(let v=lo; v<=hi; v++) full.push(v);
+    const filtered=full.filter(v=>!avoidArr.includes(v));
+    const use=filtered.length?filtered:full;
+    return use[Math.floor(Math.random()*use.length)];
+  }
+
+  let challengeMode=false;
+
+  function buildHotList(){
+    const entries=Object.entries(data.errorStats||{}).filter(([k,c])=>c>0);
+    entries.sort((x,y)=>y[1]-x[1]);
+    return entries.slice(0,15).map(([k])=>{ const p=k.split('x'); return {a:+p[0], b:+p[1]}; });
+  }
+
+  function genChallengeQuestion(){
+    const hot=buildHotList();
+    let a,b,key,tries=0;
+    do{
+      if(hot.length && Math.random()<0.5){
+        const h=hot[Math.floor(Math.random()*hot.length)]; a=h.a; b=h.b;
+      }else{
+        a=[6,7,8,9][Math.floor(Math.random()*4)];
+        b=3+Math.floor(Math.random()*8); // b de 3 à 10
+      }
+      key=a+'x'+b; tries++;
+    } while(recentKeys.includes(key) && tries<12);
+    pushRecent(key);
+    return {a,b,ans:a*b};
+  }
+
+  function genQuestion(){
+    if(challengeMode) return genChallengeQuestion();
+    let a,b,key,tries=0;
+    const classic = (level===1||level===2);
+    const bHiClassic = level===1?10:12;
+    const pool = classic ? selectedTables : (selectedTables.filter(x=>x>=2).length? selectedTables.filter(x=>x>=2) : selectedTables);
+    do{
+      a = pick(pool);
+      if(classic){
+        // Toujours un résultat à 2 chiffres (10 à 99)
+        const bLo=Math.max(1, Math.ceil(10/a));
+        const bHi=Math.min(bHiClassic, Math.floor(99/a));
+        const loF=Math.min(bLo,bHi), hiF=Math.max(bLo,bHi);
+        b = pickRange(loF, hiF, WEAK);
+      }else{
+        // Résultat à 2 OU 3 chiffres possible (10 à 999)
+        const bLo=Math.max(2, Math.ceil(10/a));
+        const bHi=Math.min(99, Math.floor(999/a));
+        const bias = bLo + Math.round((bHi-bLo)*(diff/100));
+        const jitter=Math.max(4, Math.round((bHi-bLo)*0.4));
+        b = Math.max(bLo, Math.min(bHi, bias + Math.round((Math.random()*2-1)*jitter)));
+      }
+      key=a+'x'+b; tries++;
+    } while((recentKeys.includes(key) || (WEAK.includes(a)&&WEAK.includes(b))) && tries<12);
+    pushRecent(key);
+    return {a,b,ans:a*b};
+  }
+
+  let cur, timeLeft, score, correctCount, wrongCount, combo, tickHandle, answerBuf, times=[], mistakes=[], attempts=[], corrects=[], qTries=0, qid=0, beginTs=0;
+
+  function startDrill(){
+    score=0; correctCount=0; wrongCount=0; combo=0; diff=level===1?20:level===2?35:level===3?50:65; times=[]; mistakes=[]; attempts=[]; corrects=[]; qTries=0; qid=0; answerBuf=''; recentKeys=[];
+    timeLeft=duration;
+    $('timerEl').textContent=timeLeft; $('timerEl').classList.remove('warn');
+    $('scoreEl').textContent='0'; $('comboEl').classList.remove('show');
+    runCountdown();
+  }
+
+  function runCountdown(){
+    show('countdown');
+    let n=3; $('cdNum').textContent=n; sound.tick();
+    const h=setInterval(()=>{
+      n--;
+      if(n>0){ $('cdNum').textContent=n; sound.tick(); }
+      else{ clearInterval(h); sound.go(); beginDrill(); }
+    },700);
+  }
+
+  function beginDrill(){
+    beginTs=performance.now();
+    show('drill'); nextQuestion();
+    tickHandle=setInterval(()=>{
+      timeLeft--; $('timerEl').textContent=timeLeft;
+      if(timeLeft<=10) $('timerEl').classList.add('warn');
+      if(timeLeft<=0){ clearInterval(tickHandle); endDrill(); }
+    },1000);
+  }
+
+  function nextQuestion(){
+    cur=genQuestion(); answerBuf=''; qTries=0; qid++;
+    $('questionEl').textContent = cur.a + ' × ' + cur.b;
+    $('cornerTxt1').textContent = cur.a+'×'+cur.b;
+    $('cornerTxt2').textContent = cur.a+'×'+cur.b;
+    $('answerEl').textContent='\u00A0'; $('answerEl').className='answer num';
+    qStart=performance.now();
+  }
+  let qStart=0;
+
+  function vibrate(ms){ if(navigator.vibrate) navigator.vibrate(ms); }
+
+  function pulseCard(cls){
+    const c=$('gameCard');
+    c.classList.remove('pop-good','pop-bad');
+    void c.offsetWidth; // force le redémarrage de l'animation si rejouée coup sur coup
+    c.classList.add(cls);
+  }
+
+  function submit(){
+    const val=parseInt(answerBuf||'NaN',10);
+    const dt=(performance.now()-qStart)/1000;
+    qTries++;
+    attempts.push({id:qid, q:cur.a+' × '+cur.b, ok:val===cur.ans});
+    if(val===cur.ans){
+      corrects.push({q:cur.a+' × '+cur.b, ans:cur.ans, dt, tries:qTries, at:(performance.now()-beginTs)/1000});
+      correctCount++; combo++; times.push(dt);
+      score = correctCount;
+      diff=Math.min(100, diff+ (dt<1.5?6:3));
+      $('answerEl').classList.add('flash-good'); vibrate(15); sound.correct();
+      pulseCard('pop-good');
+      $('comboEl').classList.add('show'); $('comboEl').textContent='🔥 '+combo;
+      $('scoreEl').textContent=score;
+      setTimeout(nextQuestion, 260);
+    }else{
+      wrongCount++; combo=0; diff=Math.max(0, diff-10);
+      mistakes.push({q:cur.a+' × '+cur.b, ans:cur.ans, given:isNaN(val)?'—':val});
+      const ekey=cur.a+'x'+cur.b;
+      data.errorStats[ekey]=(data.errorStats[ekey]||0)+1;
+      $('answerEl').classList.add('flash-bad'); vibrate([10,30,10]); sound.wrong();
+      pulseCard('pop-bad');
+      $('comboEl').classList.remove('show');
+      $('scoreEl').textContent=score;
+      setTimeout(()=>{
+        answerBuf='';
+        $('answerEl').textContent='\u00A0'; $('answerEl').className='answer num';
+      }, 300);
+    }
+  }
+
+  const keys=['7','8','9','4','5','6','1','2','3','⌫','0','✓'];
+  const kp=$('keypad');
+  keys.forEach(k=>{
+    const b=document.createElement('button'); b.className='key'; b.textContent=k;
+    let lastFire=0, down=false;
+    const press=(ev)=>{ if(ev) ev.preventDefault(); down=true; b.classList.add('pressed'); };
+    const release=(ev)=>{
+      if(ev) ev.preventDefault();
+      b.classList.remove('pressed');
+      if(!down) return; down=false;
+      const now=performance.now();
+      if(now-lastFire<150) return; // évite les doubles frappes (doigt + clic fantôme)
+      lastFire=now;
+      if(k==='⌫'){ answerBuf=answerBuf.slice(0,-1); sound.del(); }
+      else if(k==='✓'){ sound.key(); if(answerBuf.length) submit(); return; }
+      else { if(answerBuf.length<4){ answerBuf+=k; sound.key(); } }
+      $('answerEl').textContent = answerBuf.length? answerBuf : '\u00A0';
+      $('answerEl').className='answer num';
+      if(k!=='⌫' && k!=='✓' && answerBuf.length){
+        if(answerBuf.length>=String(cur.ans).length) submit();
+      }
+    };
+    const cancel=()=>{ down=false; b.classList.remove('pressed'); };
+    b.addEventListener('pointerdown', press, {passive:false});
+    b.addEventListener('pointerup', release, {passive:false});
+    b.addEventListener('pointercancel', cancel);
+    b.addEventListener('pointerleave', cancel);
+    b.addEventListener('click', ev=>ev.preventDefault()); // le clic est déjà géré par pointerup
+    kp.appendChild(b);
+  });
+
+  // ---- Météo de la séance ----
+  const SUN='<circle cx="32" cy="32" r="12" fill="#FFD60A"/><g stroke="#FFD60A" stroke-width="3.5" stroke-linecap="round"><path d="M32 8v6M32 50v6M8 32h6M50 32h6M15 15l4.2 4.2M44.8 44.8L49 49M49 15l-4.2 4.2M19.2 44.8L15 49"/></g>';
+  const CLOUD='M18 46a10 10 0 0 1-1-19.9 14 14 0 0 1 27.2 2.9A8.5 8.5 0 0 1 45.5 46H18z';
+  const WEATHER=[
+    {cls:'w-rain',   label:'Pluvieux',
+     svg:`<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="translate(0,-6)"><path d="${CLOUD}" fill="#D3DBE6"/></g><g stroke="#BBD9FF" stroke-width="3.5" stroke-linecap="round"><path d="M22 46l-3 7M32 46l-3 7M42 46l-3 7"/></g></svg>`},
+    {cls:'w-cloudy', label:'Très couvert',
+     svg:`<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="translate(14,-4) scale(.8)"><path d="${CLOUD}" fill="#AEB9C7"/></g><g transform="translate(-2,6)"><path d="${CLOUD}" fill="#F1F4F8"/></g></svg>`},
+    {cls:'w-partly', label:'Partiellement couvert',
+     svg:`<svg viewBox="0 0 64 64" aria-hidden="true"><g transform="translate(-3,-3) scale(.72)">${SUN}</g><g transform="translate(7,9) scale(.9)"><path d="${CLOUD}" fill="#FFFFFF"/></g></svg>`},
+    {cls:'w-sunny',  label:'Beau temps',
+     svg:`<svg viewBox="0 0 64 64" aria-hidden="true">${SUN}</svg>`}
+  ];
+  // Indice 0 = pluvieux … 3 = beau temps.
+  // La précision décide : beau temps = 100 % (zéro erreur). Un rythme trop lent plafonne le résultat.
+  function weatherIndex(acc, rpm, answered){
+    if(!answered) return 0;
+    const byAcc = acc>=100?3 : (acc>=90?2 : (acc>=75?1:0));
+    const cap   = rpm>=24?3 : (rpm>=15?2 : 1);
+    return Math.min(byAcc, cap);
+  }
+  function renderWeather(acc, rpm, answered){
+    const w=WEATHER[weatherIndex(acc,rpm,answered)];
+    $('weatherCard').className='weather '+w.cls;
+    $('wIco').innerHTML=w.svg;
+    $('wMain').textContent=w.label;
+    $('wSub').textContent=acc+' % de précision · '+rpm+' rép./min';
+  }
+
+  function endDrill(){
+    const total=correctCount+wrongCount;
+    const acc = total? Math.round(100*correctCount/total):0;
+    const rpm = Math.round(correctCount / (duration/60));
+    const avgT = times.length? (times.reduce((a,b)=>a+b,0)/times.length):0;
+    const isBest = score>data.best;
+    if(isBest) data.best=score;
+    const today=new Date().toISOString().slice(0,10);
+    if(data.lastDay!==today){
+      const y=new Date(Date.now()-86400000).toISOString().slice(0,10);
+      data.streak = (data.lastDay===y)? (data.streak||0)+1 : 1;
+      data.lastDay=today;
+    }
+    data.sessions.push({d:today, score, acc, rpm, dur:duration});
+    if(data.sessions.length>200) data.sessions=data.sessions.slice(-200);
+    save(data);
+    sound.end();
+
+    $('finalScore').textContent=score;
+    $('finalBestNote').textContent = isBest? '🏆 nouveau record personnel' : 'record personnel : '+data.best;
+    $('finalBestNote').classList.toggle('is-best', isBest);
+    $('bigCorrect').textContent=correctCount;
+    $('bigWrong').textContent=wrongCount;
+    $('errCountR').textContent = mistakes.length + (mistakes.length>1?' erreurs':' erreur');
+    $('rpm').textContent=rpm; $('acc').textContent=acc+'%'; $('avgT').textContent=avgT.toFixed(1)+'s';
+    renderWeather(acc, rpm, total>0);
+    refreshHome();
+    show('results');
+  }
+
+  function plural(n,s,p){ return n+' '+(n>1?p:s); }
+  function fmtT(t){ return t.toFixed(1).replace('.',',')+' s'; }
+
+  function openDetail(type){
+    const body=$('detailBody'); let html='', title='', sub='';
+    if(type==='correct'){
+      title='Bonnes réponses';
+      sub=plural(corrects.length,'bonne réponse','bonnes réponses')+' cette séance';
+      html = corrects.length ? `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Résultat</th></tr></thead><tbody>`
+        + corrects.map((c,i)=>`<tr><td class="n">${i+1}</td><td class="m">${c.q}</td><td class="m r ok">${c.ans}</td></tr>`).join('')
+        + `</tbody></table>` : '<div class="err-empty">Aucune bonne réponse cette séance</div>';
+    }else if(type==='errors'){
+      title='Erreurs';
+      sub=plural(mistakes.length,'erreur','erreurs')+' cette séance';
+      html = mistakes.length ? `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Ta réponse</th><th class="r">Bonne réponse</th></tr></thead><tbody>`
+        + mistakes.map((m,i)=>`<tr><td class="n">${i+1}</td><td class="m">${m.q}</td><td class="m r ko">${m.given}</td><td class="m r ok">${m.ans}</td></tr>`).join('')
+        + `</tbody></table>` : '<div class="err-empty">Aucune erreur — sans faute 🎉</div>';
+    }else if(type==='accuracy'){
+      title='Précision';
+      // Une ligne par calcul : précision = 1 bonne réponse / nombre d'essais (100 % du premier coup)
+      const groups=[];
+      attempts.forEach(a=>{
+        let g=groups[groups.length-1];
+        if(!g || g.id!==a.id){ g={id:a.id, q:a.q, tries:0, ok:false}; groups.push(g); }
+        g.tries++; if(a.ok) g.ok=true;
+      });
+      const rows=groups.map((g,i)=>{
+        const pct=g.ok? Math.round(100/g.tries) : 0;
+        const cls=pct===100?'p-top':(pct>=50?'p-mid':'p-low');
+        const icon=pct===100?'✓':(pct>=50?'~':'✗');
+        return `<tr class="${cls}"><td class="n">${i+1}</td><td class="m">${g.q}</td><td class="r">${g.tries}</td><td class="r"><span class="pill ${cls}">${icon} ${pct}%</span></td></tr>`;
+      });
+      const okAtt=attempts.filter(a=>a.ok).length;
+      const finalPct = attempts.length? Math.round(100*okAtt/attempts.length):0;
+      sub=groups.length? ('Précision globale : '+finalPct+'% · 100 % = bonne réponse du premier coup') : '';
+      html = groups.length ? `<div class="legend"><span class="l-top">100 % du premier coup</span><span class="l-mid">50–99 % au 2ᵉ essai</span><span class="l-low">moins de 50 %</span></div><table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Essais</th><th class="r">Précision</th></tr></thead><tbody>${rows.join('')}</tbody></table>`
+        : '<div class="err-empty">Aucune réponse donnée cette séance</div>';
+    }else if(type==='rpm'){
+      title='Réponses par minute';
+      // Mêmes paliers que le temps par réponse : 60 / 1,5 s = 40, 60 / 2 s = 30, 60 / 2,5 s = 24
+      const rpmCls = r => r>=40 ? 'p-fast' : (r>=30 ? 'p-top' : (r>=24 ? 'p-mid' : 'p-low'));
+      const rpmIcon = r => r>=40 ? '⚡' : (r>=30 ? '✓' : (r>=24 ? '~' : '🐢'));
+      const overall = Math.round(corrects.length/(duration/60));
+      sub = corrects.length ? ('Rythme moyen de la séance : '+overall+' rép./min') : '';
+      html = corrects.length
+        ? `<div class="legend"><span class="l-fast">⚡ éclair : 40 rép./min et plus</span><span class="l-top">30 à 40</span><span class="l-mid">24 à 30</span><span class="l-low">moins de 24</span></div>`
+          + `<div class="note"><b>Rythme</b> : ce que donnerait une minute entière à la vitesse de ce calcul (60 s ÷ son temps). <b>Cumul</b> : ta moyenne depuis le début de la séance.</div>`
+          + `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Rythme</th><th class="r">Cumul</th></tr></thead><tbody>`
+          + corrects.map((c,i)=>{
+              const r=Math.round(60/Math.max(c.dt,0.1)), cls=rpmCls(r);
+              const cum=Math.round((i+1)*60/Math.max(c.at,0.1));
+              return `<tr class="${cls}"><td class="n">${i+1}</td><td class="m">${c.q}</td><td class="r"><span class="pill ${cls}">${rpmIcon(r)} ${r}/min</span></td><td class="m r">${cum}/min</td></tr>`;
+            }).join('')
+          + `</tbody></table>`
+        : '<div class="err-empty">Aucune bonne réponse cette séance</div>';
+    }else if(type==='time'){
+      title='Temps par réponse';
+      const avg = corrects.length? corrects.reduce((s,c)=>s+c.dt,0)/corrects.length : 0;
+      // Paliers de vitesse (identiques pour tous les niveaux)
+      const speedCls = t => t<1.5 ? 'p-fast' : (t<2 ? 'p-top' : (t<2.5 ? 'p-mid' : 'p-low'));
+      const speedIcon = t => t<1.5 ? '⚡' : (t<2 ? '✓' : (t<2.5 ? '~' : '🐢'));
+      sub=corrects.length? ('Temps moyen : '+fmtT(avg)+' par calcul réussi') : '';
+      html = corrects.length
+        ? `<div class="legend"><span class="l-fast">⚡ éclair : moins de 1,5 s</span><span class="l-top">1,5 à 2 s</span><span class="l-mid">2 à 2,5 s</span><span class="l-low">2,5 s et plus</span></div>`
+          + `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Essais</th><th class="r">Temps</th></tr></thead><tbody>`
+          + corrects.map((c,i)=>{ const cls=speedCls(c.dt); return `<tr class="${cls}"><td class="n">${i+1}</td><td class="m">${c.q}</td><td class="r">${c.tries}</td><td class="r"><span class="pill ${cls}">${speedIcon(c.dt)} ${fmtT(c.dt)}</span></td></tr>`; }).join('')
+          + `</tbody></table>`
+        : '<div class="err-empty">Aucune réponse validée cette séance</div>';
+    }
+    $('detailTitle').textContent=title; $('detailSub').textContent=sub;
+    body.innerHTML=html; body.scrollTop=0;
+    show('detailScreen');
+  }
+  document.querySelectorAll('#results .tap').forEach(el=>{
+    el.addEventListener('click', ()=>openDetail(el.dataset.detail));
+  });
+  $('viewErrorsBtn').onclick=()=>openDetail('errors');
+  $('detailBack').onclick=()=>show('results');
+
+  function exitToHome(){
+    clearInterval(tickHandle);
+    show('home');
+  }
+  $('exitBtn').addEventListener('pointerdown', e=>{ e.preventDefault(); exitToHome(); });
+  $('exitBtn').addEventListener('click', e=>e.preventDefault());
+
+  $('startBtn').onclick=()=>{ challengeMode=false; startDrill(); };
+  $('retryBtn').onclick=startDrill;
+  $('challengeBtn').onclick=()=>{ level=2; duration=60; challengeMode=true; startDrill(); };
+  $('homeBtn').onclick=()=>show('home');
+  $('statsBtn').onclick=openStats;
+  $('statsBack').onclick=()=>show('home');
+
+  function openStats(){
+    const heat=$('heat'); heat.innerHTML='';
+    const days=[...Array(7)].map((_,i)=>{ const d=new Date(Date.now()-(6-i)*86400000); return d.toISOString().slice(0,10); });
+    days.forEach(day=>{
+      const has=data.sessions.some(s=>s.d===day);
+      const c=document.createElement('div'); c.className='hcell';
+      if(has) c.style.background='var(--accent)';
+      heat.appendChild(c);
+    });
+    const total=data.sessions.length;
+    const mins=Math.round(data.sessions.reduce((a,s)=>a+s.dur,0)/60);
+    const avgAcc=total? Math.round(data.sessions.reduce((a,s)=>a+s.acc,0)/total):0;
+    $('stTotal').textContent=total;
+    $('stTime').textContent=mins+' min';
+    $('stAcc').textContent= total? avgAcc+'%':'—';
+    $('stBest').textContent= data.best||'—';
+    show('statsScreen');
+  }
+})();
+</script>
+<script>
+if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+  window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
+</script>
+</body>
+</html>
