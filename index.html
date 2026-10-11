@@ -777,20 +777,22 @@ button{font-family:inherit; border:none; cursor:pointer;}
         : '<div class="err-empty">Aucune réponse donnée cette séance</div>';
     }else if(type==='rpm'){
       title='Réponses par minute';
-      // Mêmes paliers que le temps par réponse : 60 / 1,5 s = 40, 60 / 2 s = 30, 60 / 2,5 s = 24
+      // Paliers : 40 / 30 / 24 rép./min (équivalents à 1,5 s / 2 s / 2,5 s par réponse)
       const rpmCls = r => r>=40 ? 'p-fast' : (r>=30 ? 'p-top' : (r>=24 ? 'p-mid' : 'p-low'));
       const rpmIcon = r => r>=40 ? '⚡' : (r>=30 ? '✓' : (r>=24 ? '~' : '🐢'));
       const overall = Math.round(corrects.length/(duration/60));
       sub = corrects.length ? ('Rythme moyen de la séance : '+overall+' rép./min') : '';
       html = corrects.length
         ? `<div class="legend"><span class="l-fast">⚡ éclair : 40 rép./min et plus</span><span class="l-top">30 à 40</span><span class="l-mid">24 à 30</span><span class="l-low">moins de 24</span></div>`
-          + `<div class="note"><b>Rythme</b> : ce que donnerait une minute entière à la vitesse de ce calcul (60 s ÷ son temps). <b>Cumul</b> : ta moyenne depuis le début de la séance.</div>`
+          + `<div class="note"><b>Rythme</b> : cadence réelle entre cette bonne réponse et la précédente (60 s ÷ l'intervalle, pause d'animation et essais ratés compris). <b>Cumul</b> : ta moyenne depuis le début de la séance. La dernière ligne donne le résultat final sur ${duration} s, celui affiché sur l'écran de fin.</div>`
           + `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Rythme</th><th class="r">Cumul</th></tr></thead><tbody>`
           + corrects.map((c,i)=>{
-              const r=Math.round(60/Math.max(c.dt,0.1)), cls=rpmCls(r);
+              const gap=c.at-(i? corrects[i-1].at : 0);
+              const r=Math.round(60/Math.max(gap,0.1)), cls=rpmCls(r);
               const cum=Math.round((i+1)*60/Math.max(c.at,0.1));
               return `<tr class="${cls}"><td class="n">${i+1}</td><td class="m">${c.q}</td><td class="r"><span class="pill ${cls}">${rpmIcon(r)} ${r}/min</span></td><td class="m r">${cum}/min</td></tr>`;
             }).join('')
+          + `<tr><td class="n"></td><td class="m"><b>Fin (${duration} s)</b></td><td class="r"></td><td class="m r"><b>${overall}/min</b></td></tr>`
           + `</tbody></table>`
         : '<div class="err-empty">Aucune bonne réponse cette séance</div>';
     }else if(type==='time'){
