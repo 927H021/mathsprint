@@ -216,6 +216,9 @@ button{font-family:inherit; border:none; cursor:pointer;}
 .rc-details{margin-top:14px;} .rc-details summary{font-size:13px; font-weight:600; color:var(--accent); padding:8px 0; list-style:none; cursor:pointer;}
 .rc-details summary::-webkit-details-marker{display:none;} .rc-details summary::before{content:'›'; display:inline-block; margin-right:6px; transition:transform .15s;} .rc-details[open] summary::before{transform:rotate(90deg);}
 .cal-cell.tappable{cursor:pointer; touch-action:manipulation;} .cal-cell.tappable:active{filter:brightness(1.08);}
+.act-tile.is-off{opacity:.62;}
+.toast{position:fixed; left:16px; right:16px; bottom:calc(24px + env(safe-area-inset-bottom,0px)); z-index:60; background:var(--ink); color:var(--bg); font-size:13px; font-weight:600; line-height:1.35; padding:12px 14px; border-radius:14px; box-shadow:0 12px 28px -14px rgba(0,0,0,.6); opacity:0; transform:translateY(10px); pointer-events:none; transition:opacity .2s, transform .2s;}
+.toast.show{opacity:1; transform:none;}
 .sheet{position:fixed; inset:0; z-index:50; display:none; align-items:flex-end;}
 .sheet.open{display:flex;}
 .sheet-bg{position:absolute; inset:0; background:rgba(10,14,22,.5); animation:sheetFade .18s ease-out;}
@@ -331,7 +334,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
     <div class="act-row">
       <button class="act-tile" id="challengeBtn">
         <span class="act-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>
-        <span><div class="act-t">Défi du jour</div><div class="act-s">Tables 6-9 + points faibles</div></span>
+        <span><div class="act-t">Défi du jour</div><div class="act-s" id="challengeSub">Points faibles</div></span>
       </button>
       <button class="act-tile" id="statsBtn">
         <span class="act-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
@@ -424,6 +427,8 @@ button{font-family:inherit; border:none; cursor:pointer;}
   </div>
 </div>
 
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
 <div id="daySheet" class="sheet" aria-hidden="true">
   <div class="sheet-bg" id="dayBg"></div>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-label="Statistiques du jour">
@@ -440,6 +445,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
   const save=d=>{ try{ localStorage.setItem('ms_data', JSON.stringify(d)); }catch(e){} };
   let data=Object.assign({sessions:[], best:0, streak:0, lastDay:null, errorStats:{}}, store());
   if(!data.errorStats) data.errorStats={};
+  if(!data.qStats) data.qStats={};
 
   let duration=60, level=1;
   document.querySelectorAll('#durRow .chip').forEach(c=>c.onclick=()=>{
@@ -520,6 +526,9 @@ button{font-family:inherit; border:none; cursor:pointer;}
   function refreshHome(){
     $('bestVal').textContent = data.best||'—';
     const n=data.sessions.length; $('sessCountR').textContent = n+(n>1?' séances':' séance');
+    { const wl=weakList().length;
+      $('challengeSub').textContent = wl ? wl+(wl>1?' calculs à retravailler':' calcul à retravailler') : (data.sessions.length ? 'Aucun point faible' : 'Joue d\'abord une séance');
+      $('challengeBtn').classList.toggle('is-off', !wl); }
     $('streakNum').textContent = data.streak||0;
     $('streakLabel').textContent = (data.streak||0)>1 ? 'jours d\'affilée' : 'jour d\'affilée';
     // 7 derniers jours : météo du jour (même code couleur que le calendrier)
@@ -559,26 +568,34 @@ button{font-family:inherit; border:none; cursor:pointer;}
 
   let challengeMode=false;
 
-  function buildHotList(){
-    const entries=Object.entries(data.errorStats||{}).filter(([k,c])=>c>0);
-    entries.sort((x,y)=>y[1]-x[1]);
-    return entries.slice(0,15).map(([k])=>{ const p=k.split('x'); return {a:+p[0], b:+p[1]}; });
+  // Points faibles : calculs qui ont généré des erreurs ou des réponses lentes (6 dernières réponses de chaque calcul).
+  // Un calcul sort de la liste dès que ses 3 dernières réponses sont justes du premier coup et en moins de 2 s.
+  function weakList(){
+    const out=[], qs=data.qStats||{}, es=data.errorStats||{};
+    new Set([...Object.keys(qs), ...Object.keys(es)]).forEach(k=>{
+      const h=qs[k]; let w=0;
+      if(h && h.length){
+        const last3=h.slice(-3);
+        if(last3.length>=3 && last3.every(r=>r[1]===1 && r[0]<2)) return;      // maîtrisé
+        const errs=h.filter(r=>r[1]>1).length;                                  // réponses avec au moins une erreur
+        const avg=h.reduce((t,r)=>t+r[0],0)/h.length;                           // temps moyen
+        w = errs*2 + (avg>=2.5 ? 1+(avg-2.5)/0.5 : 0);
+      }else if((es[k]||0)>0){ w=es[k]; }                                         // anciennes erreurs sans historique de temps
+      if(w>0){ const p=k.split('x'); out.push({a:+p[0], b:+p[1], w, k}); }
+    });
+    out.sort((x,y)=>y.w-x.w);
+    return out.slice(0,20);
   }
+  let challengePool=[];
 
   function genChallengeQuestion(){
-    const hot=buildHotList();
-    let a,b,key,tries=0;
-    do{
-      if(hot.length && Math.random()<0.5){
-        const h=hot[Math.floor(Math.random()*hot.length)]; a=h.a; b=h.b;
-      }else{
-        a=[6,7,8,9][Math.floor(Math.random()*4)];
-        b=3+Math.floor(Math.random()*8); // b de 3 à 10
-      }
-      key=a+'x'+b; tries++;
-    } while(recentKeys.includes(key) && tries<12);
-    pushRecent(key);
-    return {a,b,ans:a*b};
+    const pool=challengePool;
+    const n=Math.min(4, pool.length-1), avoid = n>0 ? recentKeys.slice(-n) : [];
+    const cands=pool.filter(p=>!avoid.includes(p.k)), list=cands.length?cands:pool;
+    let r=Math.random()*list.reduce((t,p)=>t+p.w,0), pick_=list[list.length-1];
+    for(const p of list){ r-=p.w; if(r<=0){ pick_=p; break; } }
+    pushRecent(pick_.k);
+    return {a:pick_.a, b:pick_.b, ans:pick_.a*pick_.b};
   }
 
   function genQuestion(){
@@ -669,6 +686,10 @@ button{font-family:inherit; border:none; cursor:pointer;}
     if(val===cur.ans){
       corrects.push({q:cur.a+' × '+cur.b, ans:cur.ans, dt, tries:qTries, at:(now-beginTs)/1000}); lastOkTs=now;
       correctCount++; combo++; times.push(dt);
+      { // historique par calcul (6 dernières réponses) : [temps en s, nombre d'essais]
+        const qk=cur.a+'x'+cur.b; const h=(data.qStats[qk]=data.qStats[qk]||[]);
+        h.push([Math.round(dt*100)/100, qTries]); if(h.length>6) h.shift();
+      }
       score = correctCount;
       diff=Math.min(100, diff+ (think<1.5?6:3));
       $('answerEl').classList.add('flash-good'); vibrate(15); sound.correct();
@@ -959,7 +980,16 @@ button{font-family:inherit; border:none; cursor:pointer;}
 
   $('startBtn').onclick=()=>{ challengeMode=false; startDrill(); };
   $('retryBtn').onclick=startDrill;
-  $('challengeBtn').onclick=()=>{ level=2; duration=60; challengeMode=true; startDrill(); };
+  let toastH=null;
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastH); toastH=setTimeout(()=>t.classList.remove('show'),3800); }
+  $('challengeBtn').onclick=()=>{
+    challengePool=weakList();
+    if(!challengePool.length){
+      toast(data.sessions.length ? 'Aucun point faible pour le moment, bravo ! Le défi se remplit avec tes erreurs et tes calculs les plus lents.' : 'Joue quelques séances : le défi se construit à partir de tes erreurs et de tes calculs les plus lents.');
+      return;
+    }
+    level=2; duration=60; challengeMode=true; startDrill();
+  };
   $('homeBtn').onclick=()=>show('home');
   $('statsBtn').onclick=openStats;
   $('statsBack').onclick=()=>show('home');
