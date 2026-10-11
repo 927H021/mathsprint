@@ -882,18 +882,18 @@ button{font-family:inherit; border:none; cursor:pointer;}
       sub = corrects.length ? ('Rythme moyen de la séance : '+overall+' rép./min') : '';
       if(!corrects.length){ html='<div class="err-empty">Aucune bonne réponse cette séance</div>'; }
       else{
-        // Cumul : n bonnes réponses ÷ temps écoulé. Tendance : moyenne glissante sur les 5 dernières réponses.
-        const WIN=5;
+        // Cumul : n bonnes réponses ÷ temps écoulé. Tendance : moyenne glissante sur les 3 dernières réponses.
+        const WIN=3;
         const ser=corrects.map((c,i)=>({
           i:i+1, q:c.q, t:c.at,
           cum:(i+1)*60/Math.max(c.at,0.1),
           trend: i+1>=WIN ? WIN*60/Math.max(c.at-(i+1-WIN>0? corrects[i-WIN].at : 0),0.1) : null
         }));
         rpmChartData={ser, duration, overall};
-        html = `<div class="rc-legend"><span class="k1">Cumul</span>${ser.some(p=>p.trend!==null)?'<span class="k2">Tendance (5 dernières réponses)</span>':''}</div>`
+        html = `<div class="rc-legend"><span class="k1">Cumul</span>${ser.some(p=>p.trend!==null)?'<span class="k2">Tendance (3 dernières réponses)</span>':''}</div>`
           + `<div class="rc-wrap" id="rcWrap"><svg id="rcSvg" role="img" aria-label="Courbe du rythme cumulé et de la tendance au cours de la séance"></svg><div class="rc-tip" id="rcTip"></div></div>`
           + `<div class="legend" style="margin-top:6px;"><span class="l-fast">⚡ 40 et plus</span><span class="l-top">30 à 40</span><span class="l-mid">24 à 30</span><span class="l-low">moins de 24</span></div>`
-          + `<div class="note"><b>Cumul</b> : ta moyenne depuis le début de la séance. <b>Tendance</b> : ton rythme sur les 5 dernières réponses, pour voir si tu accélères ou si tu faiblis. ${ser.length<WIN?'La tendance apparaît à partir de 5 réponses. ':''}Les premières secondes, trop instables, sont atténuées. Touche la courbe pour lire une réponse.</div>`
+          + `<div class="note"><b>Cumul</b> : ta moyenne depuis le début de la séance. <b>Tendance</b> : ton rythme sur les 3 dernières réponses, pour voir si tu accélères ou si tu faiblis. ${ser.length<WIN?'La tendance apparaît à partir de 3 réponses. ':''}Les premières secondes, trop instables, sont atténuées. Touche la courbe pour lire une réponse.</div>`
           + `<details class="rc-details"><summary>Voir le tableau détaillé</summary><table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Cumul</th><th class="r">Tendance</th></tr></thead><tbody>`
           + ser.map(p=>{ const r=Math.round(p.cum), cls=rpmCls(r);
               return `<tr class="${cls}"><td class="n">${p.i}</td><td class="m">${p.q}</td><td class="m r">${r}/min</td><td class="m r">${p.trend===null?'—':Math.round(p.trend)+'/min'}</td></tr>`; }).join('')
