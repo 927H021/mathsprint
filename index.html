@@ -54,25 +54,57 @@ body{
 .screen{flex:1; display:none; flex-direction:column; padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));}
 .screen.active{display:flex;}
 /* HOME */
-#home{justify-content:space-between;}
-.home-top{display:flex; align-items:center; justify-content:space-between; padding-top:6px;}
-.brand{font-size:15px; font-weight:700; letter-spacing:-.02em;}
+#home{min-height:0; padding-top:calc(14px + env(safe-area-inset-top,0px));}
+.home-scroll{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:16px; -webkit-mask-image:linear-gradient(#000 calc(100% - 16px), transparent); mask-image:linear-gradient(#000 calc(100% - 16px), transparent);}
+.home-scroll::-webkit-scrollbar{display:none;}
+.home-top{display:flex; align-items:center; justify-content:space-between;}
+.brand{font-size:17px; font-weight:800; letter-spacing:-.02em;}
 .brand span{color:var(--accent);}
-.best-pill{font-size:12px; color:var(--muted); background:var(--card); border:1px solid var(--line); padding:6px 10px; border-radius:20px;}
-.hero{margin-top:18px;}
-.hero-num{font-size:64px; font-weight:800; line-height:1; letter-spacing:-.03em;}
-.hero-label{color:var(--muted); font-size:14px; margin-top:6px;}
-.duration-row{display:flex; gap:8px; margin-top:22px;}
-.chip{flex:1; text-align:center; padding:10px 0; border-radius:12px; border:1px solid var(--line); font-size:14px; font-weight:600; color:var(--muted); background:var(--card);}
+.best-pill{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--muted); background:var(--card); border:1px solid var(--line); padding:6px 11px; border-radius:20px;}
+.best-pill svg{width:13px; height:13px; flex:none; color:#E3A400;}
+.best-pill b{color:var(--ink); font-weight:700;}
+.hero-card{margin-top:14px; padding:16px 16px 14px; border-radius:22px; color:#fff; background:linear-gradient(135deg,#2F4F7F,#4C78AE); touch-action:manipulation;}
+.hero-card:active{filter:brightness(1.06);}
+.hc-title{font-size:13px; font-weight:600; opacity:.85;}
+.hc-row{display:flex; align-items:center; gap:10px; margin-top:4px;}
+.hc-row svg{width:34px; height:34px; flex:none;}
+.hero-num{font-size:52px; font-weight:800; line-height:1; letter-spacing:-.03em;}
+.hero-label{font-size:15px; font-weight:600; opacity:.92; margin-top:14px;}
+.hc-week{display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(255,255,255,.22);}
+.hc-day{text-align:center; font-size:10px; font-weight:600; opacity:1; color:rgba(255,255,255,.8);}
+.hc-day i{display:block; width:100%; max-width:30px; aspect-ratio:1; border-radius:50%; margin:0 auto 4px; background:rgba(255,255,255,.18);}
+.hc-day.today{color:#fff;} .hc-day.today i{box-shadow:0 0 0 2px #fff;}
+.hc-day i.w3{background:#7DB6FF;} .hc-day i.w2{background:#A9C3E2;} .hc-day i.w1{background:#B9C2CE;} .hc-day i.w0{background:#6B7C96;}
+.hero-card.is-gold{background:linear-gradient(135deg,#F8D45A,#E2A100); color:#3B2A00;}
+.hero-card.is-gold .hc-week{border-top-color:rgba(59,42,0,.2);} .hero-card.is-gold .hc-day{color:rgba(59,42,0,.75);} .hero-card.is-gold .hc-day.today{color:#3B2A00;} .hero-card.is-gold .hc-day.today i{box-shadow:0 0 0 2px #3B2A00;}
+.hero-card.is-gold .hc-day i{background:rgba(59,42,0,.15);}
+.hero-card.is-gold .hc-day i.w3{background:#3B2A00;} .hero-card.is-gold .hc-day i.w2{background:rgba(59,42,0,.55);} .hero-card.is-gold .hc-day i.w1{background:rgba(59,42,0,.4);} .hero-card.is-gold .hc-day i.w0{background:rgba(59,42,0,.3);}
+.setup{margin-top:12px; background:var(--card); border:1px solid var(--line); border-radius:22px; padding:6px 14px 14px;}
+.section-label{font-size:12px; color:var(--muted); font-weight:600; margin-top:12px; margin-bottom:7px;}
+.seg{display:flex; gap:4px; padding:3px; border-radius:14px; background:var(--bg); border:1px solid var(--line);}
+.chip{flex:1 1 0; min-width:0; text-align:center; padding:9px 0; border-radius:11px; border:1px solid transparent; font-size:13px; font-weight:600; color:var(--muted); touch-action:manipulation;}
 .chip.sel{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
-.level-row{display:flex; gap:8px; margin-top:8px;}
-.section-label{font-size:12px; color:var(--muted); font-weight:600; margin-top:20px; margin-bottom:8px;}
-.tables-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:6px;}
-.tchip{text-align:center; padding:10px 0; border-radius:10px; border:1px solid var(--line); font-size:14px; font-weight:700; color:var(--muted); background:var(--card); font-family:'JetBrains Mono',monospace;}
+.tables-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
+.tchip{text-align:center; padding:10px 0; border-radius:11px; border:1px solid var(--line); font-size:14px; font-weight:700; color:var(--muted); background:var(--bg); font-family:'JetBrains Mono',monospace; touch-action:manipulation;}
 .tchip.sel{border-color:var(--accent); color:var(--accent); background:var(--accent-soft);}
-.tchip.all{grid-column:span 6; font-family:'Inter',sans-serif; font-size:13px;}
-.actions{margin-top:auto; display:flex; flex-direction:column; gap:10px;}
+.tchip.all{grid-column:span 5; font-family:'Inter',sans-serif; font-size:13px; padding:9px 0;}
+.actions{flex:none; display:flex; flex-direction:column; gap:10px; padding-top:12px;}
+.act-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.act-tile{display:flex; align-items:center; gap:10px; text-align:left; background:var(--card); color:var(--ink); border:1px solid var(--line); border-radius:18px; padding:11px 12px; touch-action:manipulation;}
+.act-tile:active{background:var(--accent-soft);}
+.act-ico{flex:none; width:34px; height:34px; border-radius:11px; background:var(--accent-soft); color:var(--accent); display:flex; align-items:center; justify-content:center;}
+.act-ico svg{width:19px; height:19px;}
+.act-t{font-size:14px; font-weight:700; line-height:1.15;} .act-s{font-size:11px; color:var(--muted); margin-top:2px; line-height:1.2;}
 button{font-family:inherit; border:none; cursor:pointer;}
+@media (max-height:720px){
+  #home{padding-top:calc(8px + env(safe-area-inset-top,0px));}
+  .hero-card{margin-top:10px; padding:11px 14px 10px;} .hero-num{font-size:38px;} .hc-row svg{width:28px; height:28px;} .hero-label{margin-top:8px !important;}
+  .hc-week{margin-top:8px; padding-top:8px;} .hc-day i{max-width:22px; margin-bottom:3px;}
+  .setup{margin-top:10px; padding:2px 12px 12px;} .section-label{margin-top:8px; margin-bottom:5px;}
+  .chip{padding:7px 0;} .tchip{padding:8px 0;} .tchip.all{padding:7px 0;}
+  .act-tile{padding:8px 10px;} .act-s{display:none;}
+  .btn-pill{padding:14px 24px; font-size:18px;}
+}
 .btn-primary{background:var(--ink); color:var(--bg); font-size:17px; font-weight:700; padding:18px; border-radius:16px;}
 .btn-pill{display:flex; align-items:center; justify-content:center; gap:12px; background:#375D8D; color:#fff; font-size:20px; font-weight:700; letter-spacing:-.01em; padding:18px 24px; border-radius:999px; box-shadow:0 10px 20px -12px rgba(55,93,141,.85); touch-action:manipulation; transition:transform .08s, filter .08s;}
 .btn-pill:active{transform:scale(.97); filter:brightness(1.1);}
@@ -227,35 +259,52 @@ button{font-family:inherit; border:none; cursor:pointer;}
 <body>
 
 <div id="home" class="screen active">
-  <div>
+  <div class="home-scroll">
     <div class="home-top">
       <div class="brand">Math<span>Sprint</span></div>
-      <div class="best-pill" id="bestPill">Meilleur score : —</div>
+      <div class="best-pill" id="bestPill"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3h10v3h3v2a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V17h3v2H8v-2h3v-2.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V6h3V3zm-1 5a2 2 0 0 0 2 2V8H6zm12 0h-2v2a2 2 0 0 0 2-2z"/></svg><span>Record : <b id="bestVal">—</b></span></div>
     </div>
-    <div class="hero">
-      <div class="hero-num num" id="streakNum">0</div>
-      <div class="hero-label">jours d'entraînement d'affilée</div>
+    <div class="hero-card" id="heroCard" role="button" aria-label="Voir les statistiques">
+      <div class="hc-title" id="heroTitle">Série en cours</div>
+      <div class="hc-row">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 2c.6 3.6 4.5 5.4 4.5 10.2A5.5 5.5 0 0 1 11.5 18 5.5 5.5 0 0 1 6 12.5c0-2.3 1.2-3.7 2.3-4.8.2 1.8 1 2.7 2 3.1C9.7 7.8 10.6 4.4 12.5 2z" fill="#FFB23F"/><path d="M12 22a4.2 4.2 0 0 1-4.2-4.2c0-1.7 1.2-2.7 2.1-3.6.2 1.2.8 1.7 1.4 1.9-.2-1.5.2-2.7 1.3-3.8.3 2 2.6 2.9 2.6 5.5A4.2 4.2 0 0 1 12 22z" fill="#FF6B2C" transform="translate(0,-1)"/></svg>
+        <div class="hero-num num" id="streakNum">0</div>
+        <div class="hero-label" id="streakLabel" style="margin-top:12px;">jours d'affilée</div>
+      </div>
+      <div class="hc-week" id="heroWeek"></div>
     </div>
-    <div class="duration-row" id="durRow">
-      <div class="chip" data-v="30">30s</div>
-      <div class="chip sel" data-v="60">60s</div>
-      <div class="chip" data-v="120">120s</div>
-    </div>
-    <div class="level-row" id="lvlRow">
-      <div class="chip sel" data-v="1">Débutant</div>
-      <div class="chip" data-v="2">Interméd.</div>
-      <div class="chip" data-v="3">Avancé</div>
-      <div class="chip" data-v="4">Expert</div>
-    </div>
-    <div class="section-label" id="tablesLabel">Tables à réviser</div>
-    <div class="tables-grid" id="tablesGrid">
-      <div class="tchip all sel" data-all="1">Toutes les tables</div>
+    <div class="setup">
+      <div class="section-label">Durée</div>
+      <div class="seg" id="durRow">
+        <div class="chip" data-v="30">30 s</div>
+        <div class="chip sel" data-v="60">60 s</div>
+        <div class="chip" data-v="120">120 s</div>
+      </div>
+      <div class="section-label">Niveau</div>
+      <div class="seg" id="lvlRow">
+        <div class="chip sel" data-v="1">Débutant</div>
+        <div class="chip" data-v="2">Interméd.</div>
+        <div class="chip" data-v="3">Avancé</div>
+        <div class="chip" data-v="4">Expert</div>
+      </div>
+      <div class="section-label" id="tablesLabel">Tables à réviser</div>
+      <div class="tables-grid" id="tablesGrid">
+        <div class="tchip all sel" data-all="1">Toutes les tables</div>
+      </div>
     </div>
   </div>
   <div class="actions">
-    <button class="btn-primary" id="startBtn">Commencer</button>
-    <button class="btn-secondary" id="challengeBtn">Défi du jour <span class="r">tables 6-9 + points faibles</span></button>
-    <button class="btn-secondary" id="statsBtn">Statistiques <span class="r" id="sessCountR">0 séances</span></button>
+    <button class="btn-pill" id="startBtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.4-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></svg>Commencer</button>
+    <div class="act-row">
+      <button class="act-tile" id="challengeBtn">
+        <span class="act-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></span>
+        <span><div class="act-t">Défi du jour</div><div class="act-s">Tables 6-9 + points faibles</div></span>
+      </button>
+      <button class="act-tile" id="statsBtn">
+        <span class="act-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span>
+        <span><div class="act-t">Statistiques</div><div class="act-s" id="sessCountR">0 séance</div></span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -427,10 +476,24 @@ button{font-family:inherit; border:none; cursor:pointer;}
   function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
 
   function refreshHome(){
-    $('bestPill').textContent = 'Meilleur score : ' + (data.best||'—');
-    $('sessCountR').textContent = data.sessions.length + ' séances';
+    $('bestVal').textContent = data.best||'—';
+    const n=data.sessions.length; $('sessCountR').textContent = n+(n>1?' séances':' séance');
     $('streakNum').textContent = data.streak||0;
+    $('streakLabel').textContent = (data.streak||0)>1 ? 'jours d\'affilée' : 'jour d\'affilée';
+    // 7 derniers jours : météo du jour (même code couleur que le calendrier)
+    const wm=dayWeatherMap(), today=localDay(), JL=['D','L','M','M','J','V','S'];
+    const wk=$('heroWeek'); wk.innerHTML='';
+    for(let i=6;i>=0;i--){
+      const day=addDays(today,-i), [y,m,d]=day.split('-').map(Number);
+      const el=document.createElement('div'); el.className='hc-day'+(i===0?' today':'');
+      el.innerHTML='<i class="'+(wm[day]!==undefined?'w'+wm[day]:'')+'"></i>'+JL[new Date(y,m-1,d).getDay()];
+      wk.appendChild(el);
+    }
+    const gold=sunnyRuns().current>=7;
+    $('heroCard').classList.toggle('is-gold', gold);
+    $('heroTitle').textContent = gold ? '★ Statut Gold' : 'Série en cours';
   }
+  $('heroCard').onclick=()=>openStats();
   refreshHome();
 
   // Débutant/Intermédiaire : tables classiques (b de 1 à 10, ×12 en intermédiaire).
@@ -770,7 +833,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
 
   // ---- Statistiques mensuelles ----
   const MONTHS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
-  const pad=n=>String(n).padStart(2,'0');
+  function pad(n){ return String(n).padStart(2,'0'); }
   function localDay(d){ d=d||new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
   function addDays(day,n){ const [y,m,d]=day.split('-').map(Number); return localDay(new Date(y,m-1,d+n)); }
   // Météo d'une journée = la meilleure séance du jour.
