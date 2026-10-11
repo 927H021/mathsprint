@@ -215,6 +215,18 @@ button{font-family:inherit; border:none; cursor:pointer;}
 .rc-tip .row{display:flex; justify-content:space-between; gap:14px; margin-top:2px;} .rc-tip .row b{font-weight:800;}
 .rc-details{margin-top:14px;} .rc-details summary{font-size:13px; font-weight:600; color:var(--accent); padding:8px 0; list-style:none; cursor:pointer;}
 .rc-details summary::-webkit-details-marker{display:none;} .rc-details summary::before{content:'›'; display:inline-block; margin-right:6px; transition:transform .15s;} .rc-details[open] summary::before{transform:rotate(90deg);}
+.cal-cell.tappable{cursor:pointer; touch-action:manipulation;} .cal-cell.tappable:active{filter:brightness(1.08);}
+.sheet{position:fixed; inset:0; z-index:50; display:none; align-items:flex-end;}
+.sheet.open{display:flex;}
+.sheet-bg{position:absolute; inset:0; background:rgba(10,14,22,.5); animation:sheetFade .18s ease-out;}
+.sheet-card{position:relative; width:100%; max-height:88%; overflow-y:auto; background:var(--bg); border-radius:26px 26px 0 0; padding:10px 16px calc(18px + env(safe-area-inset-bottom,0px)); box-shadow:0 -16px 40px -20px rgba(0,0,0,.5); animation:sheetUp .24s cubic-bezier(.2,.8,.2,1);}
+.sheet-grip{width:40px; height:5px; border-radius:3px; background:var(--line); margin:0 auto 12px;}
+.day-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px;}
+.day-grid .stat-card{padding:14px 8px;} .day-grid .stat-v{font-size:26px; font-weight:800;}
+.day-empty{text-align:center; color:var(--muted); font-size:14px; padding:26px 0 14px;}
+.day-close{display:block; width:100%; margin-top:14px; padding:14px; border-radius:16px; background:var(--card); border:1px solid var(--line); color:var(--ink); font-size:15px; font-weight:600;}
+@keyframes sheetUp{from{transform:translateY(40px); opacity:0;} to{transform:none; opacity:1;}}
+@keyframes sheetFade{from{opacity:0;} to{opacity:1;}}
 .dtable{width:100%; border-collapse:collapse; font-size:14px; margin-top:6px;}
 .dtable th{position:sticky; top:0; background:var(--bg); text-align:left; font-size:11px; color:var(--muted); font-weight:600; padding:8px 6px; border-bottom:1px solid var(--line);}
 .dtable td{padding:10px 6px; border-bottom:1px solid var(--line);}
@@ -409,6 +421,15 @@ button{font-family:inherit; border:none; cursor:pointer;}
       <div class="row-line"><span>Précision moyenne</span><span class="v" id="stAcc">—</span></div>
       <div class="row-line"><span>Meilleur score</span><span class="v" id="stBest">—</span></div>
     </div>
+  </div>
+</div>
+
+<div id="daySheet" class="sheet" aria-hidden="true">
+  <div class="sheet-bg" id="dayBg"></div>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-label="Statistiques du jour">
+    <div class="sheet-grip"></div>
+    <div id="dayBody"></div>
+    <button class="day-close" id="dayClose">Fermer</button>
   </div>
 </div>
 
@@ -744,7 +765,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
       data.streak = (data.lastDay===y)? (data.streak||0)+1 : 1;
       data.lastDay=today;
     }
-    data.sessions.push({d:today, score, acc, rpm, dur:duration});
+    data.sessions.push({d:today, score, acc, rpm, dur:duration, ok:correctCount, err:wrongCount});
     if(data.sessions.length>1500) data.sessions=data.sessions.slice(-1500);
     data.goldBest=Math.max(data.goldBest||0, sunnyRuns().best);
     save(data);
@@ -988,6 +1009,46 @@ button{font-family:inherit; border:none; cursor:pointer;}
       [...Array(7)].map((_,i)=>'<i class="'+(i<on?'on':'')+'"></i>').join('')+'</div>';
   }
 
+  // ---- Statistiques d'une journée ----
+  const WDAYS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  function sessOk(s){ return s.ok!==undefined ? s.ok : (s.score||0); }
+  // Séances anciennes (sans compteur d'erreurs) : estimation à partir du score et de la précision.
+  function sessErr(s){ return s.err!==undefined ? s.err : (s.acc>0 ? Math.round((s.score||0)*(100-s.acc)/s.acc) : 0); }
+  function dayStats(day){
+    const L=data.sessions.filter(s=>s.d===day);
+    if(!L.length) return null;
+    const ok=L.reduce((a,s)=>a+sessOk(s),0), err=L.reduce((a,s)=>a+sessErr(s),0);
+    return { n:L.length, best:Math.max(...L.map(s=>s.score||0)), ok, err, acc:(ok+err)>0? Math.round(100*ok/(ok+err)) : null };
+  }
+  function closeDay(){ $('daySheet').classList.remove('open'); $('daySheet').setAttribute('aria-hidden','true'); }
+  function openDay(day){
+    const [y,m,d]=day.split('-').map(Number);
+    let title=WDAYS[new Date(y,m-1,d).getDay()]+' '+d+' '+MONTHS[m-1]+(y!==new Date().getFullYear()?' '+y:''); title=title.charAt(0).toUpperCase()+title.slice(1);
+    const st=dayStats(day), body=$('dayBody'); body.innerHTML='';
+    const el=(tag,cls,txt)=>{ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.textContent=txt; return e; };
+    if(!st){
+      const h=el('div','res-label','');  h.style.cssText='text-align:left;font-size:17px;font-weight:700;color:var(--ink);margin:6px 0 0;'; h.textContent=title;
+      body.appendChild(h); body.appendChild(el('div','day-empty','Aucune séance ce jour-là.'));
+    }else{
+      const w=WEATHER[dayWeatherMap()[day]];
+      const card=el('div','weather '+w.cls); card.style.marginTop='0';
+      const head=el('div','w-head'); const t=el('div','w-title',title); t.style.cssText='font-size:15px;'; head.appendChild(t); card.appendChild(head);
+      const row=el('div','w-row'); const ico=el('div','w-ico'); ico.innerHTML=w.svg; row.appendChild(ico);
+      const tx=el('div',''); tx.appendChild(el('div','w-main',w.label)); tx.appendChild(el('div','w-sub','Météo de la meilleure séance du jour')); row.appendChild(tx);
+      card.appendChild(row); body.appendChild(card);
+      const grid=el('div','day-grid');
+      const tile=(v,l)=>{ const c=el('div','stat-card'); c.appendChild(el('div','stat-v num',v)); c.appendChild(el('div','stat-l',l)); grid.appendChild(c); };
+      tile(st.best+(st.best>0 && st.best===data.best?' ★':''), st.best>0 && st.best===data.best ? 'record du jour (record absolu)' : 'record du jour');
+      tile(st.n, st.n>1?'séances':'séance');
+      tile(st.err, st.err>1?'erreurs':'erreur');
+      tile(st.acc===null?'—':st.acc+'%', 'précision');
+      body.appendChild(grid);
+    }
+    $('daySheet').classList.add('open'); $('daySheet').setAttribute('aria-hidden','false');
+  }
+  $('dayBg').onclick=closeDay; $('dayClose').onclick=closeDay;
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeDay(); });
+
   function renderMonth(){
     const wm=dayWeatherMap(), gd=sunnyRuns().goldDays, today=localDay();
     const first=new Date(viewY,viewM,1), nDays=new Date(viewY,viewM+1,0).getDate();
@@ -1000,6 +1061,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
     for(let d=1; d<=nDays; d++){
       const key=viewY+'-'+pad(viewM+1)+'-'+pad(d);
       const c=document.createElement('div'); c.className='cal-cell';
+      if(key<=today){ c.classList.add('tappable'); c.setAttribute('role','button'); c.tabIndex=0; c.onclick=()=>openDay(key); c.onkeydown=e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); openDay(key); } }; }
       c.innerHTML='<span class="dn">'+d+'</span>';
       if(key>today) c.classList.add('future');
       if(key===today) c.classList.add('today');
