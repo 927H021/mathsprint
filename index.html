@@ -60,6 +60,11 @@ body{
 .home-top{display:flex; align-items:center; justify-content:space-between;}
 .brand{font-size:17px; font-weight:800; letter-spacing:-.02em;}
 .brand span{color:var(--accent);}
+.top-right{display:flex; align-items:center; gap:8px;}
+.mode-btn{display:flex; align-items:center; gap:6px; height:32px; padding:0 11px; border-radius:20px; background:#375D8D; color:#fff; font-size:12px; font-weight:700; touch-action:manipulation; transition:background .15s, transform .08s;}
+.mode-btn svg{width:14px; height:14px; flex:none;}
+.mode-btn:active{transform:scale(.96);}
+.mode-btn.inv{background:#D13A3A;}
 .best-pill{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--muted); background:var(--card); border:1px solid var(--line); padding:6px 11px; border-radius:20px;}
 .best-pill svg{width:13px; height:13px; flex:none; color:#E3A400;}
 .best-pill b{color:var(--ink); font-weight:700;}
@@ -303,7 +308,10 @@ button{font-family:inherit; border:none; cursor:pointer;}
   <div class="home-scroll">
     <div class="home-top">
       <div class="brand">Math<span>Sprint</span></div>
+      <div class="top-right">
+      <button class="mode-btn" id="modeBtn" aria-pressed="false" aria-label="Changer de mode : classique ou inversé"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg><span id="modeLbl">Classique</span></button>
       <div class="best-pill" id="bestPill"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 3h10v3h3v2a4 4 0 0 1-4 4h-.3A5 5 0 0 1 13 14.9V17h3v2H8v-2h3v-2.1A5 5 0 0 1 8.3 12H8a4 4 0 0 1-4-4V6h3V3zm-1 5a2 2 0 0 0 2 2V8H6zm12 0h-2v2a2 2 0 0 0 2-2z"/></svg><span>Record : <b id="bestVal">—</b></span></div>
+      </div>
     </div>
     <div class="hero-card" id="heroCard" role="button" aria-label="Voir les statistiques">
       <div class="hc-title" id="heroTitle">Série en cours</div>
@@ -315,12 +323,6 @@ button{font-family:inherit; border:none; cursor:pointer;}
       <div class="hc-week" id="heroWeek"></div>
     </div>
     <div class="setup">
-      <div class="section-label">Mode</div>
-      <div class="seg" id="modeRow">
-        <div class="chip sel" data-v="cls">Classique</div>
-        <div class="chip" data-v="inv">Inversé</div>
-      </div>
-      <div class="note" id="modeNote" style="display:none; margin:8px 2px 0; white-space:nowrap;">Trouve <b>les 2 nombres à multiplier</b> pour obtenir le résultat.</div>
       <div class="section-label">Durée</div>
       <div class="seg" id="durRow">
         <div class="chip" data-v="30">30 s</div>
@@ -457,16 +459,23 @@ button{font-family:inherit; border:none; cursor:pointer;}
   let data=Object.assign({sessions:[], best:0, streak:0, lastDay:null, errorStats:{}}, store());
   if(!data.errorStats) data.errorStats={};
   if(!data.qStats) data.qStats={};
+  // Les parties en mode inversé ne comptent pas dans les statistiques générales : on les met à part.
+  { const inv=(data.sessions||[]).filter(x=>x.mode==='inv');
+    if(inv.length){
+      data.invSessions=(data.invSessions||[]).concat(inv);
+      data.sessions=data.sessions.filter(x=>x.mode!=='inv');
+      data.best=data.sessions.reduce((m,x)=>Math.max(m,x.score||0),0);
+      data.bestInv=Math.max(data.bestInv||0, ...inv.map(x=>x.score||0));
+      save(data);
+    } }
 
   let duration=60, level=1, mode=(data.mode==='inv'?'inv':'cls');
-  document.querySelectorAll('#modeRow .chip').forEach(c=>{
-    c.classList.toggle('sel', c.dataset.v===mode);
-    c.onclick=()=>{
-      document.querySelectorAll('#modeRow .chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); mode=c.dataset.v;
-      $('modeNote').style.display = mode==='inv' ? '' : 'none'; data.mode=mode; save(data);
-    };
-  });
-  $('modeNote').style.display = mode==='inv' ? '' : 'none';
+  function paintMode(){
+    const btn=$('modeBtn'); btn.classList.toggle('inv', mode==='inv'); btn.setAttribute('aria-pressed', mode==='inv');
+    $('modeLbl').textContent = mode==='inv' ? 'Inversé' : 'Classique';
+  }
+  $('modeBtn').onclick=()=>{ mode = mode==='inv' ? 'cls' : 'inv'; data.mode=mode; save(data); paintMode(); refreshHome(); };
+  paintMode();
   document.querySelectorAll('#durRow .chip').forEach(c=>c.onclick=()=>{
     document.querySelectorAll('#durRow .chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); duration=+c.dataset.v;
   });
@@ -543,7 +552,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
   function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
 
   function refreshHome(){
-    $('bestVal').textContent = data.best||'—';
+    $('bestVal').textContent = (mode==='inv' ? data.bestInv : data.best) || '—';
     const n=data.sessions.length; $('sessCountR').textContent = n+(n>1?' séances':' séance');
     { const wl=weakList().length;
       $('challengeSub').textContent = wl ? wl+(wl>1?' calculs à retravailler':' calcul à retravailler') : (data.sessions.length ? 'Aucun point faible' : 'Joue d\'abord une séance');
@@ -859,22 +868,29 @@ button{font-family:inherit; border:none; cursor:pointer;}
     const acc = total? Math.round(100*correctCount/total):0;
     const rpm = Math.round(correctCount / (duration/60));
     const avgT = times.length? (times.reduce((a,b)=>a+b,0)/times.length):0;
-    const isBest = score>data.best;
-    if(isBest) data.best=score;
+    const inv = drillInv;                                   // mode inversé : record et statistiques à part
+    const isBest = score > (inv ? (data.bestInv||0) : data.best);
+    if(isBest){ if(inv) data.bestInv=score; else data.best=score; }
     const today=localDay();
     if(data.lastDay!==today){
       const y=addDays(today,-1);
       data.streak = (data.lastDay===y)? (data.streak||0)+1 : 1;
       data.lastDay=today;
     }
-    data.sessions.push({d:today, score, acc, rpm, dur:duration, ok:correctCount, err:wrongCount, mode:drillInv?'inv':'cls'});
-    if(data.sessions.length>1500) data.sessions=data.sessions.slice(-1500);
-    data.goldBest=Math.max(data.goldBest||0, sunnyRuns().best);
+    if(!inv){
+      data.sessions.push({d:today, score, acc, rpm, dur:duration, ok:correctCount, err:wrongCount});
+      if(data.sessions.length>1500) data.sessions=data.sessions.slice(-1500);
+      data.goldBest=Math.max(data.goldBest||0, sunnyRuns().best);
+    }else{
+      // les parties inversées ne sont pas mélangées aux statistiques générales (calendrier, jour, Gold, totaux)
+      data.invSessions=(data.invSessions||[]); data.invSessions.push({d:today, score, acc, rpm, dur:duration, ok:correctCount, err:wrongCount});
+      if(data.invSessions.length>300) data.invSessions=data.invSessions.slice(-300);
+    }
     save(data);
     sound.end();
 
     $('finalScore').textContent=score;
-    $('finalBestNote').textContent = isBest? '🏆 nouveau record personnel' : 'record personnel : '+data.best;
+    $('finalBestNote').textContent = inv ? (isBest? '🏆 nouveau record inversé' : 'record inversé : '+(data.bestInv||0)) : (isBest? '🏆 nouveau record personnel' : 'record personnel : '+data.best);
     $('finalBestNote').classList.toggle('is-best', isBest);
     $('bigCorrect').textContent=correctCount;
     $('bigWrong').textContent=wrongCount;
