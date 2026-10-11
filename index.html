@@ -588,7 +588,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
     return {a,b,ans:a*b};
   }
 
-  let cur, timeLeft, score, correctCount, wrongCount, combo, tickHandle, answerBuf, times=[], mistakes=[], attempts=[], corrects=[], qTries=0, qid=0, beginTs=0;
+  let cur, timeLeft, score, correctCount, wrongCount, combo, tickHandle, answerBuf, times=[], mistakes=[], attempts=[], corrects=[], qTries=0, qid=0, beginTs=0, lastOkTs=0;
 
   function startDrill(){
     score=0; correctCount=0; wrongCount=0; combo=0; diff=level===1?20:level===2?35:level===3?50:65; times=[]; mistakes=[]; attempts=[]; corrects=[]; qTries=0; qid=0; answerBuf=''; recentKeys=[];
@@ -609,7 +609,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
   }
 
   function beginDrill(){
-    beginTs=performance.now();
+    beginTs=performance.now(); lastOkTs=beginTs;
     show('drill'); nextQuestion();
     tickHandle=setInterval(()=>{
       timeLeft--; $('timerEl').textContent=timeLeft;
@@ -639,14 +639,17 @@ button{font-family:inherit; border:none; cursor:pointer;}
 
   function submit(){
     const val=parseInt(answerBuf||'NaN',10);
-    const dt=(performance.now()-qStart)/1000;
+    const now=performance.now();
+    // Temps d'une réponse = durée écoulée depuis la bonne réponse précédente (ou le début) : réflexion, essais ratés et pause comprise.
+    // Ainsi temps moyen, cumul et rythme reposent sur la même horloge (60 ÷ temps moyen ≈ réponses/min).
+    const dt=(now-lastOkTs)/1000, think=(now-qStart)/1000;
     qTries++;
     attempts.push({id:qid, q:cur.a+' × '+cur.b, ok:val===cur.ans});
     if(val===cur.ans){
-      corrects.push({q:cur.a+' × '+cur.b, ans:cur.ans, dt, tries:qTries, at:(performance.now()-beginTs)/1000});
+      corrects.push({q:cur.a+' × '+cur.b, ans:cur.ans, dt, tries:qTries, at:(now-beginTs)/1000}); lastOkTs=now;
       correctCount++; combo++; times.push(dt);
       score = correctCount;
-      diff=Math.min(100, diff+ (dt<1.5?6:3));
+      diff=Math.min(100, diff+ (think<1.5?6:3));
       $('answerEl').classList.add('flash-good'); vibrate(15); sound.correct();
       pulseCard('pop-good');
       $('comboEl').classList.add('show'); $('comboEl').textContent='🔥 '+combo;
@@ -909,6 +912,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
       sub=corrects.length? ('Temps moyen : '+fmtT(avg)+' par calcul réussi') : '';
       html = corrects.length
         ? `<div class="legend"><span class="l-fast">⚡ éclair : moins de 1,5 s</span><span class="l-top">1,5 à 2 s</span><span class="l-mid">2 à 2,5 s</span><span class="l-low">2,5 s et plus</span></div>`
+          + `<div class="note">Temps écoulé depuis ta bonne réponse précédente (réflexion, essais ratés et courte pause comprise) : 60 ÷ temps moyen donne ton nombre de réponses par minute.</div>`
           + `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Essais</th><th class="r">Temps</th></tr></thead><tbody>`
           + corrects.map((c,i)=>{ const cls=speedCls(c.dt); return `<tr class="${cls}"><td class="n">${i+1}</td><td class="m">${c.q}</td><td class="r">${c.tries}</td><td class="r"><span class="pill ${cls}">${speedIcon(c.dt)} ${fmtT(c.dt)}</span></td></tr>`; }).join('')
           + `</tbody></table>`
