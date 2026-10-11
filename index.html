@@ -302,6 +302,20 @@ button{font-family:inherit; border:none; cursor:pointer;}
 .row-line{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); font-size:14px;}
 .row-line .v{font-weight:700;}
 
+/* Guide des boutons (première utilisation) */
+.tour{position:fixed; inset:0; z-index:90; display:none;}
+.tour.on{display:block;}
+.tour-ring{position:fixed; border-radius:18px; box-shadow:0 0 0 100vmax rgba(10,15,25,.66); outline:2px solid #fff; transition:all .25s ease; pointer-events:none;}
+.tour-bubble{position:fixed; left:16px; width:calc(100vw - 32px); max-width:340px; background:var(--card); color:var(--ink); border-radius:18px; padding:14px 16px 12px; box-shadow:0 16px 40px -12px rgba(0,0,0,.55); font-size:14px; line-height:1.4;}
+.tour-bubble b{display:block; font-size:15px; margin-bottom:4px;}
+.tour-arrow{position:absolute; width:16px; height:16px; background:var(--card); transform:rotate(45deg); border-radius:3px; animation:tourBob 1s ease-in-out infinite;}
+@keyframes tourBob{0%,100%{margin-top:0}50%{margin-top:-4px}}
+.tour-foot{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px;}
+.tour-count{font-size:12px; color:var(--muted);}
+.tour-skip{background:none; border:0; color:var(--muted); font:inherit; font-size:13px; font-weight:600; padding:8px 6px;}
+.tour-next{background:var(--accent); color:#fff; border:0; border-radius:12px; font:inherit; font-size:14px; font-weight:700; padding:9px 18px;}
+.guide-link{display:block; width:100%; margin-top:6px; background:none; border:1px dashed var(--line); color:var(--muted); border-radius:14px; padding:12px; font:inherit; font-size:13px; font-weight:600;}
+
 /* PWA : les encarts sont déjà gérés par .screen, on retire le doublon sur :root */
 :root{padding-top:0 !important; padding-bottom:0 !important;}
 @media (display-mode: standalone){
@@ -445,10 +459,12 @@ button{font-family:inherit; border:none; cursor:pointer;}
       <div class="row-line"><span>Temps d'entraînement</span><span class="v" id="stTime">0 min</span></div>
       <div class="row-line"><span>Précision moyenne</span><span class="v" id="stAcc">—</span></div>
       <div class="row-line"><span>Meilleur score</span><span class="v" id="stBest">—</span></div>
+      <button class="guide-link" id="guideBtn">Revoir le guide des boutons</button>
     </div>
   </div>
 </div>
 
+<div id="tour" class="tour" aria-live="polite"><div class="tour-ring" id="tourRing"></div><div class="tour-bubble" id="tourBubble"><div class="tour-arrow" id="tourArrow"></div><div id="tourText"></div><div class="tour-foot"><button class="tour-skip" id="tourSkip">Passer</button><span class="tour-count" id="tourCount"></span><button class="tour-next" id="tourNext">Suivant</button></div></div></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
 <div id="daySheet" class="sheet" aria-hidden="true">
@@ -1228,7 +1244,57 @@ button{font-family:inherit; border:none; cursor:pointer;}
     $('stAcc').textContent= total? avgAcc+'%':'—';
     $('stBest').textContent= data.best||'—';
     show('statsScreen');
+    setTimeout(()=>runStatsTour(false),500);
   }
+
+  /* ---- Guide des boutons ---- */
+  const HOME_TOUR=[
+    {sel:'#modeBtn', t:'<b>Classique / Inversé</b>Touche pour changer de mode. <b style="display:inline">Classique</b> (bleu) : on te donne 6 × 7, tu réponds 42. <b style="display:inline;color:#D13A3A">Inversé</b> (rouge) : on te donne 42, tu donnes les 2 nombres à multiplier.'},
+    {sel:'#bestPill', t:'<b>Record</b>Ton meilleur score en mode classique (le mode inversé a son propre record).'},
+    {sel:'#heroCard', t:'<b>Ta série</b>Les jours d\u2019affilée où tu t\u2019entraînes, avec la météo de ta semaine. Touche-la pour ouvrir les statistiques.'},
+    {sel:'.setup', t:'<b>Réglages</b>Choisis la durée, le niveau et les tables à réviser (ou « Toutes les tables »).'},
+    {sel:'#startBtn', t:'<b>Commencer</b>Lance une partie avec tes réglages.'},
+    {sel:'#challengeBtn', t:'<b>Défi du jour</b>Des questions ciblées sur tes points faibles : celles où tu te trompes ou réponds lentement.'},
+    {sel:'#statsBtn', t:'<b>Statistiques</b>Le calendrier du mois, la météo de chaque jour et tes courbes de progression.'}
+  ];
+  const STATS_TOUR=[
+    {sel:'#cal', t:'<b>Touche un jour</b>Tu vois alors son record, le nombre de séances, les erreurs et la précision. Chaque case montre la météo de la journée.'},
+    {sel:'#goldCard', t:'<b>Statut Gold</b>7 jours de beau temps d\u2019affilée te font gagner le statut Gold.'},
+    {sel:'.month-nav', t:'<b>Changer de mois</b>Utilise les flèches pour parcourir les mois précédents.'}
+  ];
+  let tourSteps=[], tourI=0, tourDone=null;
+  function tourShow(){
+    const st=tourSteps[tourI], el=document.querySelector(st.sel);
+    if(!el){ tourNext(); return; }
+    el.scrollIntoView({block:'center'});
+    setTimeout(()=>{
+      const r=el.getBoundingClientRect(), pad=6, ring=$('tourRing'), b=$('tourBubble'), ar=$('tourArrow');
+      ring.style.left=(r.left-pad)+'px'; ring.style.top=(r.top-pad)+'px';
+      ring.style.width=(r.width+pad*2)+'px'; ring.style.height=(r.height+pad*2)+'px';
+      $('tourText').innerHTML=st.t;
+      $('tourCount').textContent=(tourI+1)+' / '+tourSteps.length;
+      $('tourNext').textContent= tourI===tourSteps.length-1 ? 'Compris' : 'Suivant';
+      const bh=b.offsetHeight, below=r.bottom+pad+bh+26<innerHeight;
+      b.style.top= below ? (r.bottom+pad+16)+'px' : Math.max(8,r.top-pad-16-bh)+'px';
+      const bw=b.offsetWidth, bl=b.getBoundingClientRect().left;
+      const cx=Math.min(Math.max(r.left+r.width/2-bl-8,18),bw-34);
+      ar.style.left=cx+'px'; ar.style.top= below?'-7px':''; ar.style.bottom= below?'':'-7px';
+    },60);
+  }
+  function tourNext(){ tourI++; if(tourI>=tourSteps.length) tourEnd(); else tourShow(); }
+  function tourEnd(){ $('tour').classList.remove('on'); if(tourDone) tourDone(); tourDone=null; }
+  function startTour(steps,done){ tourSteps=steps; tourI=0; tourDone=done||null; $('tour').classList.add('on'); tourShow(); }
+  $('tourNext').onclick=tourNext; $('tourSkip').onclick=tourEnd;
+  function runHomeTour(force){
+    if(!force && data.tourHome) return;
+    startTour(HOME_TOUR,()=>{ data.tourHome=1; save(data); });
+  }
+  function runStatsTour(force){
+    if(!force && data.tourStats) return;
+    startTour(STATS_TOUR,()=>{ data.tourStats=1; save(data); });
+  }
+  $('guideBtn').onclick=()=>{ show('home'); setTimeout(()=>runHomeTour(true),250); };
+  setTimeout(()=>runHomeTour(false),600);
 })();
 </script>
 <script>
