@@ -1,6 +1,6 @@
 /* MathSprint — service worker.
    Pour publier une nouvelle version : changer CACHE_VERSION ci-dessous. */
-const CACHE_VERSION = 'mathsprint-v1';
+const CACHE_VERSION = 'mathsprint-v2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png',

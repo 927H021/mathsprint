@@ -186,10 +186,40 @@ button{font-family:inherit; border:none; cursor:pointer;}
 .stat-card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 8px; text-align:center;}
 .stat-v{font-size:20px; font-weight:700;} .stat-l{font-size:11px; color:var(--muted); margin-top:2px;}
 /* STATS */
+#statsScreen{min-height:0;}
 #statsScreen h2{font-size:20px; margin:0 0 4px;}
 .back{font-size:13px; color:var(--muted); margin-bottom:14px; font-weight:600;}
-.heat{display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:6px;}
-.hcell{aspect-ratio:1; border-radius:4px; background:var(--line);}
+.month-nav{display:flex; align-items:center; justify-content:space-between; margin:6px 0 10px;}
+.month-title{font-size:16px; font-weight:700; text-transform:capitalize;}
+.mnav{width:40px; height:36px; border-radius:12px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:20px; font-weight:700; line-height:1; touch-action:manipulation;}
+.mnav:disabled{opacity:.3;}
+.gold-card{border-radius:18px; padding:14px 16px; margin:4px 0 12px; border:1px solid var(--line); background:var(--card);}
+.gold-card .g-t{font-size:15px; font-weight:700;} .gold-card .g-s{font-size:12px; color:var(--muted); margin-top:3px;}
+.gold-dots{display:flex; gap:6px; margin-top:10px;}
+.gold-dots i{flex:1; height:8px; border-radius:6px; background:var(--line);}
+.gold-dots i.on{background:#E3A400;}
+.gold-card.is-gold{background:linear-gradient(135deg,#F8D45A,#E2A100); border-color:#C98F00; color:#3B2A00; box-shadow:0 10px 24px -14px rgba(180,120,0,.7);}
+.gold-card.is-gold .g-s{color:rgba(59,42,0,.8);}
+.gold-card.is-gold .gold-dots i{background:rgba(59,42,0,.22);} .gold-card.is-gold .gold-dots i.on{background:#3B2A00;}
+.cal-head,.cal{display:grid; grid-template-columns:repeat(7,1fr); gap:4px;}
+.cal-head{margin-bottom:4px;} .cal-head span{text-align:center; font-size:11px; color:var(--muted); font-weight:600;}
+.cal-cell{position:relative; aspect-ratio:1; border-radius:10px; border:1px solid var(--line); background:var(--card); overflow:hidden; display:flex; align-items:flex-end; justify-content:center;}
+.cal-cell.blank{border:none; background:none;}
+.cal-cell .dn{position:absolute; top:3px; left:5px; font-size:10px; font-weight:700; color:var(--muted); z-index:1;}
+.cal-cell svg{width:78%; height:78%; display:block; margin-bottom:-2px;}
+.cal-cell.future{opacity:.4;}
+.cal-cell.w-sunny{background:linear-gradient(135deg,#2F6FDC,#5A9FF0); border-color:transparent;}
+.cal-cell.w-partly{background:linear-gradient(135deg,#3F69A3,#6F93BF); border-color:transparent;}
+.cal-cell.w-cloudy{background:linear-gradient(135deg,#5A6779,#7D8A9B); border-color:transparent;}
+.cal-cell.w-rain{background:linear-gradient(135deg,#34445C,#5B6E88); border-color:transparent;}
+.cal-cell[class*="w-"] .dn{color:rgba(255,255,255,.85);}
+.cal-cell.today{outline:2px solid var(--accent); outline-offset:1px;}
+.cal-cell.gold{box-shadow:0 0 0 2px #E3A400;}
+.cal-cell.gold::after{content:'★'; position:absolute; top:2px; right:4px; font-size:10px; color:#FFD34D; z-index:1;}
+.m-sum{display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-top:12px; font-size:12px; color:var(--muted);}
+.m-sum b{color:var(--ink); font-weight:700;}
+.m-sum span::before{content:''; display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; vertical-align:-1px; background:var(--line);}
+.m-sum .s3::before{background:#5A9FF0;} .m-sum .s2::before{background:#6F93BF;} .m-sum .s1::before{background:#7D8A9B;} .m-sum .s0::before{background:#34445C;}
 .row-line{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); font-size:14px;}
 .row-line .v{font-weight:700;}
 </style>
@@ -291,12 +321,19 @@ button{font-family:inherit; border:none; cursor:pointer;}
 </div>
 
 <div id="statsScreen" class="screen">
-  <div style="padding-top:calc(10px + env(safe-area-inset-top,0px));">
+  <div style="flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-top:calc(10px + env(safe-area-inset-top,0px));">
     <div class="back" id="statsBack">‹ Retour</div>
     <h2>Statistiques</h2>
-    <div class="res-label" style="text-align:left;margin-bottom:14px;">7 derniers jours</div>
-    <div class="heat" id="heat"></div>
-    <div style="margin-top:22px;">
+    <div class="gold-card" id="goldCard"></div>
+    <div class="month-nav">
+      <button class="mnav" id="monthPrev" aria-label="Mois précédent">‹</button>
+      <div class="month-title" id="monthTitle"></div>
+      <button class="mnav" id="monthNext" aria-label="Mois suivant">›</button>
+    </div>
+    <div class="cal-head"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span></div>
+    <div class="cal" id="cal"></div>
+    <div class="m-sum" id="monthSum"></div>
+    <div style="margin-top:22px; padding-bottom:calc(20px + env(safe-area-inset-bottom,0px));">
       <div class="row-line"><span>Séances totales</span><span class="v" id="stTotal">0</span></div>
       <div class="row-line"><span>Temps d'entraînement</span><span class="v" id="stTime">0 min</span></div>
       <div class="row-line"><span>Précision moyenne</span><span class="v" id="stAcc">—</span></div>
@@ -614,14 +651,15 @@ button{font-family:inherit; border:none; cursor:pointer;}
     const avgT = times.length? (times.reduce((a,b)=>a+b,0)/times.length):0;
     const isBest = score>data.best;
     if(isBest) data.best=score;
-    const today=new Date().toISOString().slice(0,10);
+    const today=localDay();
     if(data.lastDay!==today){
-      const y=new Date(Date.now()-86400000).toISOString().slice(0,10);
+      const y=addDays(today,-1);
       data.streak = (data.lastDay===y)? (data.streak||0)+1 : 1;
       data.lastDay=today;
     }
     data.sessions.push({d:today, score, acc, rpm, dur:duration});
-    if(data.sessions.length>200) data.sessions=data.sessions.slice(-200);
+    if(data.sessions.length>1500) data.sessions=data.sessions.slice(-1500);
+    data.goldBest=Math.max(data.goldBest||0, sunnyRuns().best);
     save(data);
     sound.end();
 
@@ -730,15 +768,85 @@ button{font-family:inherit; border:none; cursor:pointer;}
   $('statsBtn').onclick=openStats;
   $('statsBack').onclick=()=>show('home');
 
-  function openStats(){
-    const heat=$('heat'); heat.innerHTML='';
-    const days=[...Array(7)].map((_,i)=>{ const d=new Date(Date.now()-(6-i)*86400000); return d.toISOString().slice(0,10); });
-    days.forEach(day=>{
-      const has=data.sessions.some(s=>s.d===day);
-      const c=document.createElement('div'); c.className='hcell';
-      if(has) c.style.background='var(--accent)';
-      heat.appendChild(c);
+  // ---- Statistiques mensuelles ----
+  const MONTHS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const pad=n=>String(n).padStart(2,'0');
+  function localDay(d){ d=d||new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function addDays(day,n){ const [y,m,d]=day.split('-').map(Number); return localDay(new Date(y,m-1,d+n)); }
+  // Météo d'une journée = la meilleure séance du jour.
+  function dayWeatherMap(){
+    const m={};
+    data.sessions.forEach(s=>{
+      const w=weatherIndex(s.acc, s.rpm, true);
+      if(m[s.d]===undefined || w>m[s.d]) m[s.d]=w;
     });
+    return m;
+  }
+  // Séries de jours consécutifs en beau temps (indice 3).
+  function sunnyRuns(){
+    const wm=dayWeatherMap();
+    const days=Object.keys(wm).filter(d=>wm[d]===3).sort();
+    const runs=[]; let cur=[];
+    days.forEach(d=>{
+      if(cur.length && addDays(cur[cur.length-1],1)===d) cur.push(d); else { if(cur.length) runs.push(cur); cur=[d]; }
+    });
+    if(cur.length) runs.push(cur);
+    const today=localDay(), yest=addDays(today,-1);
+    const last=runs.length? runs[runs.length-1]:null;
+    const lastEnd=last? last[last.length-1]:null;
+    const current = (last && (lastEnd===today || lastEnd===yest)) ? last.length : 0;
+    const best = runs.reduce((a,r)=>Math.max(a,r.length),0);
+    const goldDays=new Set(); runs.forEach(r=>{ if(r.length>=7) r.forEach(d=>goldDays.add(d)); });
+    return {current, best, goldDays};
+  }
+  const now0=new Date(); let viewY=now0.getFullYear(), viewM=now0.getMonth();
+
+  function renderGold(){
+    const r=sunnyRuns(), best=Math.max(r.best, data.goldBest||0);
+    const card=$('goldCard'); const gold=r.current>=7;
+    card.classList.toggle('is-gold', gold);
+    let t,sub,on;
+    if(gold){ t='★ Statut Gold'; sub=r.current+' jours de beau temps d\'affilée. Continue !'; on=7; }
+    else if(best>=7){ t='★ Gold déjà obtenu'; sub='Série en cours : '+r.current+' / 7 · record : '+best+' jours'; on=r.current; }
+    else { t='Statut Gold'; sub=r.current+' / 7 jours de beau temps d\'affilée'; on=r.current; }
+    card.innerHTML='<div class="g-t">'+t+'</div><div class="g-s">'+sub+'</div><div class="gold-dots">'+
+      [...Array(7)].map((_,i)=>'<i class="'+(i<on?'on':'')+'"></i>').join('')+'</div>';
+  }
+
+  function renderMonth(){
+    const wm=dayWeatherMap(), gd=sunnyRuns().goldDays, today=localDay();
+    const first=new Date(viewY,viewM,1), nDays=new Date(viewY,viewM+1,0).getDate();
+    const lead=(first.getDay()+6)%7; // lundi = 0
+    $('monthTitle').textContent=MONTHS[viewM]+' '+viewY;
+    $('monthNext').disabled = (viewY===now0.getFullYear() && viewM===now0.getMonth());
+    const cal=$('cal'); cal.innerHTML='';
+    for(let i=0;i<lead;i++){ const b=document.createElement('div'); b.className='cal-cell blank'; cal.appendChild(b); }
+    const counts=[0,0,0,0]; let played=0;
+    for(let d=1; d<=nDays; d++){
+      const key=viewY+'-'+pad(viewM+1)+'-'+pad(d);
+      const c=document.createElement('div'); c.className='cal-cell';
+      c.innerHTML='<span class="dn">'+d+'</span>';
+      if(key>today) c.classList.add('future');
+      if(key===today) c.classList.add('today');
+      if(wm[key]!==undefined){
+        const w=WEATHER[wm[key]]; c.classList.add(w.cls); c.insertAdjacentHTML('beforeend', w.svg);
+        c.setAttribute('aria-label', d+' '+MONTHS[viewM]+' : '+w.label);
+        counts[wm[key]]++; played++;
+        if(gd.has(key)) c.classList.add('gold');
+      }
+      cal.appendChild(c);
+    }
+    const sum=$('monthSum');
+    sum.innerHTML='<span class="s3">Beau temps : <b>'+counts[3]+'</b></span><span class="s2">Partiellement couvert : <b>'+counts[2]+'</b></span>'+
+      '<span class="s1">Très couvert : <b>'+counts[1]+'</b></span><span class="s0">Pluvieux : <b>'+counts[0]+'</b></span>'+
+      '<span style="grid-column:1/-1;">Jours d\'entraînement ce mois-ci : <b>'+played+' / '+nDays+'</b></span>';
+  }
+  $('monthPrev').onclick=()=>{ viewM--; if(viewM<0){viewM=11; viewY--;} renderMonth(); };
+  $('monthNext').onclick=()=>{ viewM++; if(viewM>11){viewM=0; viewY++;} renderMonth(); };
+
+  function openStats(){
+    const n=new Date(); viewY=n.getFullYear(); viewM=n.getMonth();
+    renderGold(); renderMonth();
     const total=data.sessions.length;
     const mins=Math.round(data.sessions.reduce((a,s)=>a+s.dur,0)/60);
     const avgAcc=total? Math.round(data.sessions.reduce((a,s)=>a+s.acc,0)/total):0;
