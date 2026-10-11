@@ -151,6 +151,11 @@ button{font-family:inherit; border:none; cursor:pointer;}
 }
 .question{font-size:34px; font-weight:700; letter-spacing:-.02em;}
 .answer{font-size:26px; font-weight:800; min-height:36px; color:var(--accent); border-bottom:3px solid var(--line); padding:0 8px 3px; min-width:80px; text-align:center;}
+.answer.inv{display:flex; align-items:flex-end; justify-content:center; gap:8px; border-bottom-color:transparent; min-width:150px;}
+.answer.inv .slot{display:inline-block; min-width:34px; padding:0 4px 2px; border-bottom:3px solid var(--line); text-align:center;}
+.answer.inv .slot.on{border-bottom-color:var(--accent);}
+.answer.inv .xs{color:var(--muted); font-weight:600; padding-bottom:2px;}
+.answer.inv.flash-good .slot{border-bottom-color:var(--good);} .answer.inv.flash-bad .slot{border-bottom-color:var(--bad);}
 .answer.flash-good{color:var(--good); border-color:var(--good);}
 .answer.flash-bad{color:var(--bad); border-color:var(--bad); animation:shake .25s;}
 @keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
@@ -310,6 +315,12 @@ button{font-family:inherit; border:none; cursor:pointer;}
       <div class="hc-week" id="heroWeek"></div>
     </div>
     <div class="setup">
+      <div class="section-label">Mode</div>
+      <div class="seg" id="modeRow">
+        <div class="chip sel" data-v="cls">Classique</div>
+        <div class="chip" data-v="inv">Inversé</div>
+      </div>
+      <div class="note" id="modeNote" style="display:none; margin:8px 2px 0; white-space:nowrap;">Trouve <b>les 2 nombres à multiplier</b> pour obtenir le résultat.</div>
       <div class="section-label">Durée</div>
       <div class="seg" id="durRow">
         <div class="chip" data-v="30">30 s</div>
@@ -447,7 +458,15 @@ button{font-family:inherit; border:none; cursor:pointer;}
   if(!data.errorStats) data.errorStats={};
   if(!data.qStats) data.qStats={};
 
-  let duration=60, level=1;
+  let duration=60, level=1, mode=(data.mode==='inv'?'inv':'cls');
+  document.querySelectorAll('#modeRow .chip').forEach(c=>{
+    c.classList.toggle('sel', c.dataset.v===mode);
+    c.onclick=()=>{
+      document.querySelectorAll('#modeRow .chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); mode=c.dataset.v;
+      $('modeNote').style.display = mode==='inv' ? '' : 'none'; data.mode=mode; save(data);
+    };
+  });
+  $('modeNote').style.display = mode==='inv' ? '' : 'none';
   document.querySelectorAll('#durRow .chip').forEach(c=>c.onclick=()=>{
     document.querySelectorAll('#durRow .chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); duration=+c.dataset.v;
   });
@@ -620,15 +639,18 @@ button{font-family:inherit; border:none; cursor:pointer;}
         const jitter=Math.max(4, Math.round((bHi-bLo)*0.4));
         b = Math.max(bLo, Math.min(bHi, bias + Math.round((Math.random()*2-1)*jitter)));
       }
-      key=a+'x'+b; tries++;
-    } while((recentKeys.includes(key) || (WEAK.includes(a)&&WEAK.includes(b))) && tries<12);
+      key=drillInv ? 'p'+(a*b) : a+'x'+b; tries++;   // mode inversé : on évite de reposer le même résultat (3×7 / 7×3, 4×6 / 3×8)
+    } while((recentKeys.includes(key) || (WEAK.includes(a)&&WEAK.includes(b)) || (drillInv && (a<2||b<2))) && tries<40);
+    if(drillInv){ a=Math.max(2,a); b=Math.max(2,b); key='p'+(a*b); }   // mode inversé : le résultat doit avoir une décomposition en 2 facteurs ≥ 2
     pushRecent(key);
     return {a,b,ans:a*b};
   }
 
   let cur, timeLeft, score, correctCount, wrongCount, combo, tickHandle, answerBuf, times=[], mistakes=[], attempts=[], corrects=[], qTries=0, qid=0, beginTs=0, lastOkTs=0;
+  let drillInv=false, invA='', invB='', invStage='A', lockInput=false, okKey=null;
 
   function startDrill(){
+    drillInv = (mode==='inv' && !challengeMode);
     score=0; correctCount=0; wrongCount=0; combo=0; diff=level===1?20:level===2?35:level===3?50:65; times=[]; mistakes=[]; attempts=[]; corrects=[]; qTries=0; qid=0; answerBuf=''; recentKeys=[];
     timeLeft=duration;
     $('timerEl').textContent=timeLeft; $('timerEl').classList.remove('warn');
@@ -657,11 +679,19 @@ button{font-family:inherit; border:none; cursor:pointer;}
   }
 
   function nextQuestion(){
-    cur=genQuestion(); answerBuf=''; qTries=0; qid++;
-    $('questionEl').textContent = cur.a + ' × ' + cur.b;
-    $('cornerTxt1').textContent = cur.a+'×'+cur.b;
-    $('cornerTxt2').textContent = cur.a+'×'+cur.b;
-    $('answerEl').textContent='\u00A0'; $('answerEl').className='answer num';
+    cur=genQuestion(); answerBuf=''; qTries=0; qid++; lockInput=false;
+    if(drillInv){
+      // mode inversé : la carte affiche le résultat, il faut donner les 2 facteurs
+      $('questionEl').textContent = cur.ans;
+      $('cornerTxt1').textContent = cur.ans; $('cornerTxt2').textContent = cur.ans;
+      invA=''; invB=''; invStage='A'; invRender();
+    }else{
+      $('questionEl').textContent = cur.a + ' × ' + cur.b;
+      $('cornerTxt1').textContent = cur.a+'×'+cur.b;
+      $('cornerTxt2').textContent = cur.a+'×'+cur.b;
+      $('answerEl').textContent='\u00A0'; $('answerEl').className='answer num';
+      if(okKey) okKey.textContent='✓';
+    }
     qStart=performance.now();
   }
   let qStart=0;
@@ -675,18 +705,30 @@ button{font-family:inherit; border:none; cursor:pointer;}
     c.classList.add(cls);
   }
 
+  function invRender(){
+    const a=$('answerEl');
+    a.className='answer num inv';
+    a.innerHTML='<span class="slot'+(invStage==='A'?' on':'')+'">'+(invA||' ')+'</span><span class="xs">×</span><span class="slot'+(invStage==='B'?' on':'')+'">'+(invB||' ')+'</span>';
+    if(okKey) okKey.textContent = invStage==='A' ? '×' : '✓';
+  }
+
   function submit(){
-    const val=parseInt(answerBuf||'NaN',10);
     const now=performance.now();
+    const isInv=drillInv;
+    const val=isInv? null : parseInt(answerBuf||'NaN',10);
+    const A=+invA, B=+invB;
+    const isOk = isInv ? (A>=2 && B>=2 && A*B===cur.ans) : val===cur.ans;   // mode inversé : toute paire de facteurs ≥ 2 de bon produit est valide
+    const qLabel = isInv ? cur.ans+' = ? × ?' : cur.a+' × '+cur.b;
     // Temps d'une réponse = durée écoulée depuis la bonne réponse précédente (ou le début) : réflexion, essais ratés et pause comprise.
     // Ainsi temps moyen, cumul et rythme reposent sur la même horloge (60 ÷ temps moyen ≈ réponses/min).
     const dt=(now-lastOkTs)/1000, think=(now-qStart)/1000;
     qTries++;
-    attempts.push({id:qid, q:cur.a+' × '+cur.b, ok:val===cur.ans});
-    if(val===cur.ans){
-      corrects.push({q:cur.a+' × '+cur.b, ans:cur.ans, dt, tries:qTries, at:(now-beginTs)/1000}); lastOkTs=now;
+    attempts.push({id:qid, q:qLabel, ok:isOk});
+    if(isOk){
+      lockInput=true;
+      corrects.push({q:qLabel, ans:isInv? (invA+' × '+invB) : cur.ans, dt, tries:qTries, at:(now-beginTs)/1000}); lastOkTs=now;
       correctCount++; combo++; times.push(dt);
-      { // historique par calcul (6 dernières réponses) : [temps en s, nombre d'essais]
+      if(!isInv){ // historique par calcul (6 dernières réponses) : [temps en s, nombre d'essais]
         const qk=cur.a+'x'+cur.b; const h=(data.qStats[qk]=data.qStats[qk]||[]);
         h.push([Math.round(dt*100)/100, qTries]); if(h.length>6) h.shift();
       }
@@ -699,17 +741,53 @@ button{font-family:inherit; border:none; cursor:pointer;}
       setTimeout(nextQuestion, 260);
     }else{
       wrongCount++; combo=0; diff=Math.max(0, diff-10);
-      mistakes.push({q:cur.a+' × '+cur.b, ans:cur.ans, given:isNaN(val)?'—':val});
-      const ekey=cur.a+'x'+cur.b;
-      data.errorStats[ekey]=(data.errorStats[ekey]||0)+1;
+      mistakes.push({q:qLabel, ans:isInv? (cur.a+' × '+cur.b) : cur.ans, given:isInv? (invA+' × '+invB) : (isNaN(val)?'—':val)});
+      if(!isInv){ const ekey=cur.a+'x'+cur.b; data.errorStats[ekey]=(data.errorStats[ekey]||0)+1; }
       $('answerEl').classList.add('flash-bad'); vibrate([10,30,10]); sound.wrong();
       pulseCard('pop-bad');
       $('comboEl').classList.remove('show');
       $('scoreEl').textContent=score;
+      if(isInv) lockInput=true;
       setTimeout(()=>{
         answerBuf='';
-        $('answerEl').textContent='\u00A0'; $('answerEl').className='answer num';
+        if(isInv){ invA=''; invB=''; invStage='A'; lockInput=false; invRender(); }
+        else{ $('answerEl').textContent=' '; $('answerEl').className='answer num'; }
       }, 300);
+    }
+  }
+
+  // Mode inversé : saisie des 2 facteurs. Le 1er facteur passe seul au 2ᵉ quand il ne peut plus s'allonger en un diviseur du résultat ;
+  // la touche × (ou ✓ au 2ᵉ facteur) permet de forcer l'étape.
+  function invCanExtend(n){
+    const maxF=Math.floor(cur.ans/2), sn=String(n);
+    for(let d=n+1; d<=maxF; d++){ if(cur.ans%d===0 && String(d).startsWith(sn)) return true; }
+    return false;
+  }
+  function invKey(k){
+    const maxLen=String(Math.max(2,Math.floor(cur.ans/2))).length;
+    if(k==='⌫'){
+      sound.del();
+      if(invStage==='B'){ if(invB) invB=invB.slice(0,-1); else invStage='A'; }
+      else invA=invA.slice(0,-1);
+      invRender(); return;
+    }
+    if(k==='✓'){
+      sound.key();
+      if(invStage==='A'){ if(invA){ invStage='B'; invRender(); } }
+      else if(invB){ submit(); }
+      return;
+    }
+    const curStr = invStage==='A' ? invA : invB;
+    if(curStr.length>=maxLen || (curStr==='' && k==='0')) return;
+    sound.key();
+    if(invStage==='A'){
+      invA+=k;
+      if(invA.length>=maxLen || !invCanExtend(+invA)) invStage='B';
+      invRender();
+    }else{
+      invB+=k; invRender();
+      const a=+invA, L=(a>0 && cur.ans%a===0) ? String(cur.ans/a).length : maxLen;
+      if(invB.length>=L) submit();
     }
   }
 
@@ -726,6 +804,8 @@ button{font-family:inherit; border:none; cursor:pointer;}
       const now=performance.now();
       if(now-lastFire<150) return; // évite les doubles frappes (doigt + clic fantôme)
       lastFire=now;
+      if(lockInput) return;
+      if(drillInv){ invKey(k); return; }
       if(k==='⌫'){ answerBuf=answerBuf.slice(0,-1); sound.del(); }
       else if(k==='✓'){ sound.key(); if(answerBuf.length) submit(); return; }
       else { if(answerBuf.length<4){ answerBuf+=k; sound.key(); } }
@@ -741,6 +821,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
     b.addEventListener('pointercancel', cancel);
     b.addEventListener('pointerleave', cancel);
     b.addEventListener('click', ev=>ev.preventDefault()); // le clic est déjà géré par pointerup
+    if(k==='✓') okKey=b;
     kp.appendChild(b);
   });
 
@@ -786,7 +867,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
       data.streak = (data.lastDay===y)? (data.streak||0)+1 : 1;
       data.lastDay=today;
     }
-    data.sessions.push({d:today, score, acc, rpm, dur:duration, ok:correctCount, err:wrongCount});
+    data.sessions.push({d:today, score, acc, rpm, dur:duration, ok:correctCount, err:wrongCount, mode:drillInv?'inv':'cls'});
     if(data.sessions.length>1500) data.sessions=data.sessions.slice(-1500);
     data.goldBest=Math.max(data.goldBest||0, sunnyRuns().best);
     save(data);
@@ -889,7 +970,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
     if(type==='correct'){
       title='Bonnes réponses';
       sub=plural(corrects.length,'bonne réponse','bonnes réponses')+' cette séance';
-      html = corrects.length ? `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Résultat</th></tr></thead><tbody>`
+      html = corrects.length ? `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">${drillInv?'Ta réponse':'Résultat'}</th></tr></thead><tbody>`
         + corrects.map((c,i)=>`<tr><td class="n">${i+1}</td><td class="m">${c.q}</td><td class="m r ok">${c.ans}</td></tr>`).join('')
         + `</tbody></table>` : '<div class="err-empty">Aucune bonne réponse cette séance</div>';
     }else if(type==='errors'){
