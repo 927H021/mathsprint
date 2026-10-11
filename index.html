@@ -29,19 +29,19 @@ body{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none; ove
 :root{
   --bg:#F7F7F4; --ink:#15181C; --muted:#8A8F98; --line:#E4E3DD;
   --accent:#2F6FED; --accent-soft:#E9F0FF; --good:#1E8E5A; --bad:#E5484D; --warn:#C77700; --fast:#00C46A;
-  --card:#FFFFFF;
+  --card:#FFFFFF; --s1:#2a78d6; --s2:#eb6834;
   box-sizing:border-box;
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#14161A; --ink:#F2F3F5; --muted:#9096A0; --line:#2A2D33;
-    --accent:#5B8DFF; --accent-soft:#1E2A45; --good:#3ECB86; --bad:#FF6B6E; --warn:#F0A63A; --fast:#2EF59A; --card:#1B1E24;
+    --accent:#5B8DFF; --accent-soft:#1E2A45; --good:#3ECB86; --bad:#FF6B6E; --warn:#F0A63A; --fast:#2EF59A; --card:#1B1E24; --s1:#3987e5; --s2:#d95926;
   }
 }
 :root[data-theme="dark"]{
   --bg:#14161A; --ink:#F2F3F5; --muted:#9096A0; --line:#2A2D33;
-  --accent:#5B8DFF; --accent-soft:#1E2A45; --good:#3ECB86; --bad:#FF6B6E; --warn:#F0A63A; --fast:#2EF59A; --card:#1B1E24;
+  --accent:#5B8DFF; --accent-soft:#1E2A45; --good:#3ECB86; --bad:#FF6B6E; --warn:#F0A63A; --fast:#2EF59A; --card:#1B1E24; --s1:#3987e5; --s2:#d95926;
 }
 *{box-sizing:border-box;}
 html,body{height:100%;margin:0;}
@@ -194,6 +194,27 @@ button{font-family:inherit; border:none; cursor:pointer;}
 .w-sub{font-size:12px; opacity:.9; margin-top:3px;}
 #detailScreen{min-height:0;}
 .detail-scroll{flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:12px;}
+.rc-legend{display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--ink); margin:2px 0 8px;}
+.rc-legend span::before, .rc-tip .k::before{content:''; display:inline-block; width:16px; height:2px; border-radius:2px; margin-right:6px; vertical-align:3px; background:var(--c);}
+.rc-legend .k1,.rc-tip .k1{--c:var(--s1);} .rc-legend .k2,.rc-tip .k2{--c:var(--s2);}
+.rc-wrap{position:relative; margin:0 -4px;}
+.rc-wrap svg{display:block; width:100%; height:auto; touch-action:pan-y; user-select:none; -webkit-user-select:none;}
+.rc-grid{stroke:var(--line); stroke-width:1; shape-rendering:crispEdges;}
+.rc-tick{font-size:10px; fill:var(--muted); font-family:'Inter',sans-serif;}
+.rc-zone.z3{fill:var(--fast);} .rc-zone.z2{fill:var(--good);} .rc-zone.z1{fill:var(--warn);} .rc-zone.z0{fill:var(--bad);}
+.rc-zone{fill-opacity:.09;}
+.rc-line{fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+.rc-l1{stroke:var(--s1);} .rc-l2{stroke:var(--s2);}
+.rc-early{opacity:.35;}
+.rc-final{stroke:var(--muted); stroke-width:1; stroke-dasharray:2 3;}
+.rc-flabel{font-size:10px; font-weight:700; fill:var(--ink); font-family:'Inter',sans-serif;}
+.rc-dot{stroke:var(--bg); stroke-width:2;}
+.rc-cross{stroke:var(--muted); stroke-width:1;}
+.rc-tip{position:absolute; top:6px; left:0; pointer-events:none; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px 10px; font-size:12px; color:var(--ink); box-shadow:0 8px 20px -10px rgba(0,0,0,.35); white-space:nowrap; display:none; z-index:3;}
+.rc-tip .t0{font-weight:700; margin-bottom:4px;} .rc-tip .t0 span{color:var(--muted); font-weight:600;}
+.rc-tip .row{display:flex; justify-content:space-between; gap:14px; margin-top:2px;} .rc-tip .row b{font-weight:800;}
+.rc-details{margin-top:14px;} .rc-details summary{font-size:13px; font-weight:600; color:var(--accent); padding:8px 0; list-style:none; cursor:pointer;}
+.rc-details summary::-webkit-details-marker{display:none;} .rc-details summary::before{content:'›'; display:inline-block; margin-right:6px; transition:transform .15s;} .rc-details[open] summary::before{transform:rotate(90deg);}
 .dtable{width:100%; border-collapse:collapse; font-size:14px; margin-top:6px;}
 .dtable th{position:sticky; top:0; background:var(--bg); text-align:left; font-size:11px; color:var(--muted); font-weight:600; padding:8px 6px; border-bottom:1px solid var(--line);}
 .dtable td{padding:10px 6px; border-bottom:1px solid var(--line);}
@@ -741,7 +762,84 @@ button{font-family:inherit; border:none; cursor:pointer;}
   function plural(n,s,p){ return n+' '+(n>1?p:s); }
   function fmtT(t){ return t.toFixed(1).replace('.',',')+' s'; }
 
+
+  // ---- Graphique du rythme (SVG) : cumul + tendance, zones 24/30/40, ligne de fin ----
+  function drawRpmChart(D){
+    const svg=$('rcSvg'), tip=$('rcTip'), wrap=$('rcWrap');
+    if(!svg) return;
+    const {ser,duration,overall}=D;
+    const W=350,H=210, L=30,R=34,T=10,B=24, pw=W-L-R, ph=H-T-B;
+    const stable=p=>p.i>=3 && p.t>=5;           // début de séance atténué
+    const vals=[overall]; ser.forEach(p=>{ if(stable(p)) vals.push(p.cum); if(p.trend!==null) vals.push(p.trend); });
+    let lo=Math.max(0,Math.floor((Math.min(...vals)-5)/10)*10), hi=Math.ceil((Math.max(...vals)+5)/10)*10;
+    if(hi-lo<30){ hi=lo+30; }
+    const X=t=>L+pw*Math.min(1,t/duration), Y=v=>T+ph*(1-(v-lo)/(hi-lo));
+    const f=n=>n.toFixed(1);
+    let g='';
+    // zones de couleur (mêmes paliers que les tableaux)
+    [[0,24,'z0'],[24,30,'z1'],[30,40,'z2'],[40,999,'z3']].forEach(([a,b,c])=>{
+      const y1=Y(Math.min(b,hi)), y2=Y(Math.max(a,lo));
+      if(Math.min(b,hi)>Math.max(a,lo)) g+=`<rect class="rc-zone ${c}" x="${L}" y="${f(y1)}" width="${pw}" height="${f(y2-y1)}"/>`;
+    });
+    // grille + graduations Y
+    for(let v=lo; v<=hi+0.001; v+=10){
+      g+=`<line class="rc-grid" x1="${L}" x2="${L+pw}" y1="${f(Y(v))}" y2="${f(Y(v))}"/><text class="rc-tick" x="${L-6}" y="${f(Y(v)+3.5)}" text-anchor="end">${v}</text>`;
+    }
+    // graduations X (secondes)
+    const step = duration<=30?10 : (duration<=60?15:30);
+    for(let t=0;t<=duration;t+=step){
+      g+=`<text class="rc-tick" x="${f(X(t))}" y="${H-7}" text-anchor="${t===0?'start':(t===duration?'end':'middle')}">${t} s</text>`;
+    }
+    // résultat final (pointillés fins) + libellé à droite
+    g+=`<line class="rc-final" x1="${L}" x2="${L+pw}" y1="${f(Y(overall))}" y2="${f(Y(overall))}"/>`;
+    // courbe du cumul : début atténué, puis courbe pleine
+    const idx=ser.findIndex(stable);
+    const path=arr=>arr.map((p,k)=>(k?'L':'M')+f(X(p.t))+' '+f(Y(p.cum))).join(' ');
+    if(idx<0){ g+=`<path class="rc-line rc-l1 rc-early" d="${path(ser)}"/>`; }
+    else{
+      if(idx>0) g+=`<path class="rc-line rc-l1 rc-early" d="${path(ser.slice(0,idx+1))}"/>`;
+      if(ser.length-idx>1) g+=`<path class="rc-line rc-l1" d="${path(ser.slice(idx))}"/>`;
+    }
+    // tendance
+    const tr=ser.filter(p=>p.trend!==null);
+    if(tr.length>1) g+=`<path class="rc-line rc-l2" d="${tr.map((p,k)=>(k?'L':'M')+f(X(p.t))+' '+f(Y(p.trend))).join(' ')}"/>`;
+    // point final du cumul + libellé direct
+    const last=ser[ser.length-1];
+    g+=`<circle class="rc-dot" cx="${f(X(last.t))}" cy="${f(Y(last.cum))}" r="4" fill="var(--s1)"/>`;
+    g+=`<text class="rc-flabel" x="${W-R+6}" y="${f(Y(overall)+3.5)}">${overall}</text>`;
+    // couche interactive
+    g+=`<line class="rc-cross" id="rcCross" y1="${T}" y2="${T+ph}" x1="0" x2="0" style="display:none"/><circle class="rc-dot" id="rcD1" r="4" fill="var(--s1)" style="display:none"/><circle class="rc-dot" id="rcD2" r="4" fill="var(--s2)" style="display:none"/>`;
+    g+=`<rect id="rcHit" x="${L}" y="${T}" width="${pw}" height="${ph}" fill="transparent"/>`;
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.innerHTML=g;
+
+    const cross=$('rcCross'), d1=$('rcD1'), d2=$('rcD2');
+    function hide(){ cross.style.display=d1.style.display=d2.style.display='none'; tip.style.display='none'; }
+    function show_(clientX){
+      const r=svg.getBoundingClientRect(), vx=(clientX-r.left)/r.width*W;
+      let best=ser[0], bd=1e9; ser.forEach(p=>{ const d=Math.abs(X(p.t)-vx); if(d<bd){bd=d; best=p;} });
+      const px=X(best.t);
+      cross.setAttribute('x1',f(px)); cross.setAttribute('x2',f(px)); cross.style.display='';
+      d1.setAttribute('cx',f(px)); d1.setAttribute('cy',f(Y(best.cum))); d1.style.display='';
+      if(best.trend!==null){ d2.setAttribute('cx',f(px)); d2.setAttribute('cy',f(Y(best.trend))); d2.style.display=''; } else d2.style.display='none';
+      tip.innerHTML='';
+      const t0=document.createElement('div'); t0.className='t0'; t0.textContent='N° '+best.i+' · '+best.q+' '; 
+      const sp=document.createElement('span'); sp.textContent='à '+best.t.toFixed(1).replace('.',',')+' s'; t0.appendChild(sp); tip.appendChild(t0);
+      const row=(cls,label,v)=>{ const e=document.createElement('div'); e.className='row'; const a=document.createElement('span'); a.className='k '+cls; a.textContent=label; const b=document.createElement('b'); b.textContent=v; e.appendChild(a); e.appendChild(b); tip.appendChild(e); };
+      row('k1','Cumul',Math.round(best.cum)+'/min');
+      if(best.trend!==null) row('k2','Tendance',Math.round(best.trend)+'/min');
+      tip.style.display='block';
+      const wr=wrap.getBoundingClientRect(), pxPage=px/W*r.width+(r.left-wr.left);
+      const tw=tip.offsetWidth; let left=pxPage+12; if(left+tw>wr.width) left=pxPage-tw-12; tip.style.left=Math.max(0,left)+'px';
+    }
+    const hit=$('rcHit');
+    hit.addEventListener('pointerdown', e=>show_(e.clientX));
+    hit.addEventListener('pointermove', e=>show_(e.clientX));
+    hit.addEventListener('pointerleave', e=>{ if(e.pointerType==='mouse') hide(); });
+    document.getElementById('detailBody').addEventListener('scroll', hide, {passive:true});
+  }
+  let rpmChartData=null;
   function openDetail(type){
+    rpmChartData=null;
     const body=$('detailBody'); let html='', title='', sub='';
     if(type==='correct'){
       title='Bonnes réponses';
@@ -782,19 +880,26 @@ button{font-family:inherit; border:none; cursor:pointer;}
       const rpmIcon = r => r>=40 ? '⚡' : (r>=30 ? '✓' : (r>=24 ? '~' : '🐢'));
       const overall = Math.round(corrects.length/(duration/60));
       sub = corrects.length ? ('Rythme moyen de la séance : '+overall+' rép./min') : '';
-      html = corrects.length
-        ? `<div class="legend"><span class="l-fast">⚡ éclair : 40 rép./min et plus</span><span class="l-top">30 à 40</span><span class="l-mid">24 à 30</span><span class="l-low">moins de 24</span></div>`
-          + `<div class="note"><b>Rythme</b> : cadence réelle entre cette bonne réponse et la précédente (60 s ÷ l'intervalle, pause d'animation et essais ratés compris). <b>Cumul</b> : ta moyenne depuis le début de la séance. La dernière ligne donne le résultat final sur ${duration} s, celui affiché sur l'écran de fin.</div>`
-          + `<table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Rythme</th><th class="r">Cumul</th></tr></thead><tbody>`
-          + corrects.map((c,i)=>{
-              const gap=c.at-(i? corrects[i-1].at : 0);
-              const r=Math.round(60/Math.max(gap,0.1)), cls=rpmCls(r);
-              const cum=Math.round((i+1)*60/Math.max(c.at,0.1));
-              return `<tr class="${cls}"><td class="n">${i+1}</td><td class="m">${c.q}</td><td class="r"><span class="pill ${cls}">${rpmIcon(r)} ${r}/min</span></td><td class="m r">${cum}/min</td></tr>`;
-            }).join('')
-          + `<tr><td class="n"></td><td class="m"><b>Fin (${duration} s)</b></td><td class="r"></td><td class="m r"><b>${overall}/min</b></td></tr>`
-          + `</tbody></table>`
-        : '<div class="err-empty">Aucune bonne réponse cette séance</div>';
+      if(!corrects.length){ html='<div class="err-empty">Aucune bonne réponse cette séance</div>'; }
+      else{
+        // Cumul : n bonnes réponses ÷ temps écoulé. Tendance : moyenne glissante sur les 5 dernières réponses.
+        const WIN=5;
+        const ser=corrects.map((c,i)=>({
+          i:i+1, q:c.q, t:c.at,
+          cum:(i+1)*60/Math.max(c.at,0.1),
+          trend: i+1>=WIN ? WIN*60/Math.max(c.at-(i+1-WIN>0? corrects[i-WIN].at : 0),0.1) : null
+        }));
+        rpmChartData={ser, duration, overall};
+        html = `<div class="rc-legend"><span class="k1">Cumul</span>${ser.some(p=>p.trend!==null)?'<span class="k2">Tendance (5 dernières réponses)</span>':''}</div>`
+          + `<div class="rc-wrap" id="rcWrap"><svg id="rcSvg" role="img" aria-label="Courbe du rythme cumulé et de la tendance au cours de la séance"></svg><div class="rc-tip" id="rcTip"></div></div>`
+          + `<div class="legend" style="margin-top:6px;"><span class="l-fast">⚡ 40 et plus</span><span class="l-top">30 à 40</span><span class="l-mid">24 à 30</span><span class="l-low">moins de 24</span></div>`
+          + `<div class="note"><b>Cumul</b> : ta moyenne depuis le début de la séance. <b>Tendance</b> : ton rythme sur les 5 dernières réponses, pour voir si tu accélères ou si tu faiblis. ${ser.length<WIN?'La tendance apparaît à partir de 5 réponses. ':''}Les premières secondes, trop instables, sont atténuées. Touche la courbe pour lire une réponse.</div>`
+          + `<details class="rc-details"><summary>Voir le tableau détaillé</summary><table class="dtable"><thead><tr><th>N°</th><th>Calcul</th><th class="r">Cumul</th><th class="r">Tendance</th></tr></thead><tbody>`
+          + ser.map(p=>{ const r=Math.round(p.cum), cls=rpmCls(r);
+              return `<tr class="${cls}"><td class="n">${p.i}</td><td class="m">${p.q}</td><td class="m r">${r}/min</td><td class="m r">${p.trend===null?'—':Math.round(p.trend)+'/min'}</td></tr>`; }).join('')
+          + `<tr><td class="n"></td><td class="m"><b>Fin (${duration} s)</b></td><td class="m r"><b>${overall}/min</b></td><td class="r"></td></tr>`
+          + `</tbody></table></details>`;
+      }
     }else if(type==='time'){
       title='Temps par réponse';
       const avg = corrects.length? corrects.reduce((s,c)=>s+c.dt,0)/corrects.length : 0;
@@ -811,6 +916,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
     }
     $('detailTitle').textContent=title; $('detailSub').textContent=sub;
     body.innerHTML=html; body.scrollTop=0;
+    if(type==='rpm' && rpmChartData) drawRpmChart(rpmChartData);
     show('detailScreen');
   }
   document.querySelectorAll('#results .tap').forEach(el=>{
