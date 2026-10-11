@@ -301,6 +301,14 @@ button{font-family:inherit; border:none; cursor:pointer;}
 .m-sum .s3::before{background:#5A9FF0;} .m-sum .s2::before{background:#6F93BF;} .m-sum .s1::before{background:#7D8A9B;} .m-sum .s0::before{background:#34445C;}
 .row-line{display:flex; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--line); font-size:14px;}
 .row-line .v{font-weight:700;}
+
+/* PWA : les encarts sont déjà gérés par .screen, on retire le doublon sur :root */
+:root{padding-top:0 !important; padding-bottom:0 !important;}
+@media (display-mode: standalone){
+  #home{padding-top:calc(env(safe-area-inset-top,0px) + 22px);}
+  #drill{padding-top:calc(env(safe-area-inset-top,0px) + 22px);}
+  .weather{margin-top:calc(env(safe-area-inset-top,0px) + 18px);}
+}
 </style>
 </head>
 <body>
