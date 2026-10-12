@@ -500,17 +500,20 @@ button{font-family:inherit; border:none; cursor:pointer;}
 
   let duration=60, level=1, mode=(data.mode==='inv'?'inv':'cls');
 
-  // Retour haptique : vibration (Android) ou « interrupteur » invisible qui déclenche le Taptic Engine (iPhone, iOS 17.4+)
-  let hapLbl=null;
+  // Retour haptique : vibration (Android) ou « interrupteur » invisible qui déclenche le Taptic Engine (iPhone, iOS 17.4+).
+  // L'interrupteur doit être réellement affiché (pas de display:none) et activé pendant le geste de l'utilisateur.
+  let hapInput=null;
   function haptic(ms){
     try{
       if(navigator.vibrate){ navigator.vibrate(ms||12); return; }
-      if(!hapLbl){
-        hapLbl=document.createElement('label'); hapLbl.setAttribute('aria-hidden','true'); hapLbl.style.display='none';
-        const i=document.createElement('input'); i.type='checkbox'; i.setAttribute('switch',''); hapLbl.appendChild(i);
-        document.head.appendChild(hapLbl);
+      if(!hapInput){
+        const lab=document.createElement('label'); lab.setAttribute('aria-hidden','true');
+        lab.style.cssText='position:fixed;left:0;top:0;width:1px;height:1px;overflow:hidden;opacity:0.01;pointer-events:none;z-index:-1;';
+        hapInput=document.createElement('input'); hapInput.type='checkbox'; hapInput.setAttribute('switch',''); hapInput.tabIndex=-1;
+        hapInput.style.cssText='appearance:auto;-webkit-appearance:auto;width:1px;height:1px;margin:0;';
+        lab.appendChild(hapInput); document.body.appendChild(lab);
       }
-      hapLbl.click();
+      hapInput.click();
     }catch(e){}
   }
   function paintMode(){
