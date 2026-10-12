@@ -520,7 +520,7 @@ button{font-family:inherit; border:none; cursor:pointer;}
     const btn=$('modeBtn'); btn.classList.toggle('inv', mode==='inv'); btn.setAttribute('aria-pressed', mode==='inv');
     $('modeLbl').textContent = mode==='inv' ? 'Inversé' : 'Classique';
   }
-  $('modeBtn').onclick=()=>{ haptic(10); mode = mode==='inv' ? 'cls' : 'inv'; data.mode=mode; save(data); paintMode(); refreshHome(); };
+  $('modeBtn').onclick=()=>{ haptic(10); mode = mode==='inv' ? 'cls' : 'inv'; data.mode=mode; save(data); paintMode(); refreshHome(); sound.mode(mode); };
   paintMode();
   document.querySelectorAll('#durRow .chip').forEach(c=>c.onclick=()=>{
     document.querySelectorAll('#durRow .chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); duration=+c.dataset.v;
@@ -592,7 +592,8 @@ button{font-family:inherit; border:none; cursor:pointer;}
     wrong:()=>tone(220,0,0.22,0.14,'triangle'),
     end:()=>{tone(523,0,0.16,0.15,'sine'); tone(659,0.1,0.16,0.13,'sine'); tone(784,0.2,0.3,0.13,'sine');},
     key:()=>{ tap(0,0.10,950); tone(150+Math.random()*30,0,0.06,0.05,'sine'); },
-    del:()=>{ tap(0,0.09,650); tone(110,0,0.07,0.05,'sine'); }
+    del:()=>{ tap(0,0.09,650); tone(110,0,0.07,0.05,'sine'); },
+    mode:(k)=>{ const f=k==='inv'?[392,523]:(k==='learn'?[523,784]:[523,392]); tone(f[0],0,0.11,0.14,'sine'); tone(f[1],0.07,0.18,0.12,'sine'); }
   };
 
   function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
