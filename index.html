@@ -1320,8 +1320,18 @@ button{font-family:inherit; border:none; cursor:pointer;}
 </script>
 <script>
 if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
-  window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+  const had = !!navigator.serviceWorker.controller; let reloaded=false;
+  navigator.serviceWorker.addEventListener('controllerchange',function(){
+    if(!had || reloaded) return;
+    const h=document.getElementById('home');
+    if(h && h.classList.contains('active')){ reloaded=true; location.reload(); }   // jamais en pleine partie
+  });
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      reg.update();
+      document.addEventListener('visibilitychange',function(){ if(!document.hidden) reg.update(); });
+    }).catch(function(){});
+  });
 }
-</script>
-</body>
+</script></body>
 </html>
