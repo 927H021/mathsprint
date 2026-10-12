@@ -499,11 +499,25 @@ button{font-family:inherit; border:none; cursor:pointer;}
     } }
 
   let duration=60, level=1, mode=(data.mode==='inv'?'inv':'cls');
+
+  // Retour haptique : vibration (Android) ou « interrupteur » invisible qui déclenche le Taptic Engine (iPhone, iOS 17.4+)
+  let hapLbl=null;
+  function haptic(ms){
+    try{
+      if(navigator.vibrate){ navigator.vibrate(ms||12); return; }
+      if(!hapLbl){
+        hapLbl=document.createElement('label'); hapLbl.setAttribute('aria-hidden','true'); hapLbl.style.display='none';
+        const i=document.createElement('input'); i.type='checkbox'; i.setAttribute('switch',''); hapLbl.appendChild(i);
+        document.head.appendChild(hapLbl);
+      }
+      hapLbl.click();
+    }catch(e){}
+  }
   function paintMode(){
     const btn=$('modeBtn'); btn.classList.toggle('inv', mode==='inv'); btn.setAttribute('aria-pressed', mode==='inv');
     $('modeLbl').textContent = mode==='inv' ? 'Inversé' : 'Classique';
   }
-  $('modeBtn').onclick=()=>{ mode = mode==='inv' ? 'cls' : 'inv'; data.mode=mode; save(data); paintMode(); refreshHome(); };
+  $('modeBtn').onclick=()=>{ haptic(10); mode = mode==='inv' ? 'cls' : 'inv'; data.mode=mode; save(data); paintMode(); refreshHome(); };
   paintMode();
   document.querySelectorAll('#durRow .chip').forEach(c=>c.onclick=()=>{
     document.querySelectorAll('#durRow .chip').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); duration=+c.dataset.v;
