@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>MathSprint</title>
 <meta name="theme-color" content="#F7F7F4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#14161A" media="(prefers-color-scheme: dark)">
@@ -45,6 +45,7 @@ body{-webkit-user-select:none; user-select:none; -webkit-touch-callout:none; ove
 }
 *{box-sizing:border-box;}
 html,body{height:100%;margin:0;}
+html,body{position:fixed; inset:0; width:100%; overflow:hidden;}
 html{scroll-padding-top:env(safe-area-inset-top,0px);}
 body{
   font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--ink);
@@ -1316,6 +1317,16 @@ button{font-family:inherit; border:none; cursor:pointer;}
   }
   $('guideBtn').onclick=()=>{ show('home'); setTimeout(()=>runHomeTour(true),250); };
   setTimeout(()=>runHomeTour(false),600);
+})();
+</script>
+<script>
+/* Page figée : pas de zoom (pincer / double-tap), pas de décalage de la vue */
+(function(){
+  ['gesturestart','gesturechange','gestureend'].forEach(function(t){ document.addEventListener(t,function(e){ e.preventDefault(); },{passive:false}); });
+  document.addEventListener('touchmove',function(e){ if(e.touches.length>1) e.preventDefault(); },{passive:false});
+  var reset=function(){ if(window.scrollX||window.scrollY) window.scrollTo(0,0); };
+  window.addEventListener('scroll',reset,{passive:true});
+  if(window.visualViewport){ visualViewport.addEventListener('scroll',reset); visualViewport.addEventListener('resize',reset); }
 })();
 </script>
 <script>
